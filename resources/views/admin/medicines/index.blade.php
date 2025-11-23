@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Data Obat')
-@section('header', 'Data Obat')
+@section('title', 'Inventory')
+@section('header', 'Inventory')
 
 @section('content')
 <div class="bg-white rounded-lg shadow-md p-6">
@@ -58,7 +58,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Belum ada data obat</td>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Belum ada inventory</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -34,7 +34,7 @@
             </div>
             <div class="bg-white text-sky-600 px-6 py-3 rounded-lg shadow-lg">
                 <i class="fas fa-clock text-2xl mb-2"></i>
-                <p class="font-semibold">Buka 24 Jam</p>
+                <p class="font-semibold">Buka 07.00 - 20.00</p>
             </div>
         </div>
     </div>
@@ -49,7 +49,7 @@
         </div>
         <div class="grid md:grid-cols-2 gap-12 items-center">
             <div>
-                <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600" alt="Apotek" class="rounded-lg shadow-lg">
+                <img src="apotik.jpg" alt="Apotek" class="rounded-lg shadow-lg">
             </div>
             <div>
                 <h4 class="text-2xl font-semibold text-gray-800 mb-4">Langse Farma - Partner Kesehatan Anda</h4>
@@ -60,7 +60,6 @@
                     <li><i class="fas fa-check-circle text-sky-500 mr-2"></i>Obat-obatan resmi dan terjamin</li>
                     <li><i class="fas fa-check-circle text-sky-500 mr-2"></i>Farmasis berpengalaman</li>
                     <li><i class="fas fa-check-circle text-sky-500 mr-2"></i>Konsultasi gratis</li>
-                    <li><i class="fas fa-check-circle text-sky-500 mr-2"></i>Sistem manajemen modern</li>
                 </ul>
             </div>
         </div>
@@ -104,7 +103,7 @@
 <section class="py-16 gradient-bg text-white">
     <div class="container mx-auto px-6 text-center">
         <h3 class="text-3xl font-bold mb-4">Hubungi Kami</h3>
-        <p class="mb-8 text-lg">Kami siap melayani Anda 24/7</p>
+        <p class="mb-8 text-lg">Kami siap melayani anda setiap hari</p>
         <div class="grid md:grid-cols-3 gap-8">
             <div>
                 <i class="fas fa-phone text-3xl mb-2"></i>
@@ -119,7 +118,7 @@
             <div>
                 <i class="fas fa-map-marker-alt text-3xl mb-2"></i>
                 <p class="font-semibold">Alamat</p>
-                <p>Jl. Kesehatan No. 123, Yogyakarta</p>
+                <p>Jl. Randusari - Klaten, Nepen, Kec. Teras, Kabupaten Boyolali, Jawa Tengah</p>
             </div>
         </div>
     </div>

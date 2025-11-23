@@ -18,11 +18,13 @@ class CashierController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.medicine_id' => 'required|exists:medicines,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'paid_amount' => 'required|numeric|min:0'
+            'payment_method' => 'required|in:cash,qris',
+            'paid_amount' => 'nullable|numeric|min:0',
+            'payment_confirmed' => 'nullable|boolean'
         ]);
 
         try {
@@ -50,17 +52,35 @@ class CashierController extends Controller
                 ];
             }
 
-            // Validasi pembayaran
-            if ($request->paid_amount < $totalAmount) {
-                return back()->with('error', 'Jumlah pembayaran kurang!');
+            $paymentMethod = $validated['payment_method'];
+            $paymentConfirmed = $request->boolean('payment_confirmed');
+            $paidAmount = $paymentMethod === 'qris'
+                ? $totalAmount
+                : ($validated['paid_amount'] ?? 0);
+
+            if ($paymentMethod === 'qris' && !$paymentConfirmed) {
+                return back()->with('error', 'Konfirmasi pembayaran QRIS wajib dicentang sebelum melanjutkan!');
             }
+
+            if ($paymentMethod === 'cash' && $paidAmount < $totalAmount) {
+                return back()->with('error', 'Jumlah pembayaran tunai kurang!');
+            }
+
+            if ($paymentMethod === 'cash' && !isset($validated['paid_amount'])) {
+                return back()->with('error', 'Jumlah pembayaran tunai wajib diisi!');
+            }
+
+            $changeAmount = $paymentMethod === 'qris'
+                ? 0
+                : $paidAmount - $totalAmount;
 
             // Buat transaksi
             $transaction = Transaction::create([
                 'transaction_code' => Transaction::generateCode(),
+                'payment_method' => $paymentMethod,
                 'total_amount' => $totalAmount,
-                'paid_amount' => $request->paid_amount,
-                'change_amount' => $request->paid_amount - $totalAmount,
+                'paid_amount' => $paidAmount,
+                'change_amount' => $changeAmount,
                 'user_id' => auth()->id()
             ]);
 
