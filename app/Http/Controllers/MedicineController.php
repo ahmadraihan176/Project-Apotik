@@ -35,7 +35,7 @@ class MedicineController extends Controller
         Medicine::create($validated);
 
         return redirect()->route('admin.medicines.index')
-            ->with('success', 'Data obat berhasil ditambahkan!');
+            ->with('success', 'Inventory berhasil ditambahkan!');
     }
 
     public function edit(Medicine $medicine)
@@ -57,7 +57,7 @@ class MedicineController extends Controller
         $medicine->update($validated);
 
         return redirect()->route('admin.medicines.index')
-            ->with('success', 'Data obat berhasil diupdate!');
+            ->with('success', 'Inventory berhasil diupdate!');
     }
 
     public function destroy(Medicine $medicine)
@@ -65,6 +65,6 @@ class MedicineController extends Controller
         $medicine->delete();
 
         return redirect()->route('admin.medicines.index')
-            ->with('success', 'Data obat berhasil dihapus!');
+            ->with('success', 'Inventory berhasil dihapus!');
     }
 }

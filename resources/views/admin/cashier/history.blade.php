@@ -11,7 +11,8 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode Transaksi</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kasir</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Petugas</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Metode</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
@@ -28,6 +29,9 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {{ $transaction->user->name }}
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {{ $transaction->payment_method === 'qris' ? 'QRIS' : 'Tunai' }}
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="font-semibold text-green-600">
                                 Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}
@@ -41,7 +45,7 @@
                         </td>
                     </tr>
                     <tr id="detail-{{ $transaction->id }}" class="hidden bg-gray-50">
-                        <td colspan="5" class="px-6 py-4">
+                        <td colspan="6" class="px-6 py-4">
                             <div class="space-y-2">
                                 <h4 class="font-semibold text-gray-800 mb-2">Detail Transaksi:</h4>
                                 @foreach($transaction->details as $detail)
@@ -67,12 +71,16 @@
                                     <span>Kembalian:</span>
                                     <span>Rp {{ number_format($transaction->change_amount, 0, ',', '.') }}</span>
                                 </div>
+                                <div class="flex justify-between">
+                                    <span>Metode Pembayaran:</span>
+                                    <span class="font-semibold">{{ $transaction->payment_method === 'qris' ? 'QRIS' : 'Tunai' }}</span>
+                                </div>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">Belum ada transaksi</td>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">Belum ada transaksi</td>
                     </tr>
                 @endforelse
             </tbody>

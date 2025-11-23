@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Kasir')
-@section('header', 'Sistem Kasir')
+@section('title', 'Penjualan')
+@section('header', 'Sistem Penjualan')
 
 @section('content')
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -43,22 +43,49 @@
             <p class="text-gray-500 text-center py-8">Keranjang kosong</p>
         </div>
 
-        <div class="border-t pt-4 space-y-2">
+        <div class="border-t pt-4 space-y-4">
             <div class="flex justify-between text-lg font-semibold">
                 <span>Total:</span>
                 <span id="totalAmount" class="text-sky-600">Rp 0</span>
             </div>
 
-            <input type="number" id="paidAmount" placeholder="Jumlah Bayar" min="0"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <div>
+                <label class="block text-gray-700 font-semibold mb-2">Metode Pembayaran</label>
+                <select id="paymentMethod"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <option value="cash" selected>Tunai</option>
+                    <option value="qris">QRIS</option>
+                </select>
+            </div>
 
-            <div class="flex justify-between text-lg">
-                <span>Kembalian:</span>
-                <span id="changeAmount" class="font-semibold text-green-600">Rp 0</span>
+            <div id="cashPaymentFields" class="space-y-2">
+                <input type="number" id="paidAmount" placeholder="Jumlah Bayar" min="0"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+
+                <div class="flex justify-between text-lg">
+                    <span>Kembalian:</span>
+                    <span id="changeAmount" class="font-semibold text-green-600">Rp 0</span>
+                </div>
+            </div>
+
+            <div id="qrisNotice" class="space-y-3 hidden">
+                <p class="text-sm text-gray-600">Gunakan QRIS pada perangkat terpisah, lalu centang konfirmasi setelah pelanggan menyelesaikan pembayaran.</p>
+                <div class="flex justify-between text-lg">
+                    <span>Kembalian:</span>
+                    <span id="changeAmountQris" class="font-semibold text-green-600">Rp 0</span>
+                </div>
+            </div>
+
+            <div id="paymentConfirmWrapper" class="hidden">
+                <label class="flex items-center space-x-3 text-sm font-semibold text-gray-700">
+                    <input type="checkbox" id="paymentConfirmed" class="w-4 h-4 text-sky-600 border-gray-300 rounded">
+                    <span>Pembayaran telah diterima (Terbayar)</span>
+                </label>
+                <p class="text-xs text-gray-500">Centang setelah dana masuk saat menggunakan QRIS.</p>
             </div>
 
             <button onclick="processTransaction()" id="btnProcess"
-                class="w-full gradient-bg text-white font-semibold py-3 rounded-lg hover:opacity-90 mt-4" disabled>
+                class="w-full gradient-bg text-white font-semibold py-3 rounded-lg mt-4 transition duration-200 shadow-md hover:opacity-90" disabled>
                 <i class="fas fa-cash-register mr-2"></i>Proses Transaksi
             </button>
 
@@ -72,6 +99,15 @@
 @push('scripts')
 <script>
 let cart = [];
+const paymentMethodSelect = document.getElementById('paymentMethod');
+const paidAmountInput = document.getElementById('paidAmount');
+const changeAmountElement = document.getElementById('changeAmount');
+const cashPaymentFields = document.getElementById('cashPaymentFields');
+const qrisNotice = document.getElementById('qrisNotice');
+const changeAmountQris = document.getElementById('changeAmountQris');
+const paymentConfirmWrapper = document.getElementById('paymentConfirmWrapper');
+const paymentConfirmedCheckbox = document.getElementById('paymentConfirmed');
+const btnProcess = document.getElementById('btnProcess');
 
 // Search functionality
 document.getElementById('searchMedicine').addEventListener('input', function(e) {
@@ -136,12 +172,12 @@ function updateQuantity(id, delta) {
 function updateCart() {
     const cartContainer = document.getElementById('cartItems');
     const totalElement = document.getElementById('totalAmount');
-    const btnProcess = document.getElementById('btnProcess');
 
     if (cart.length === 0) {
         cartContainer.innerHTML = '<p class="text-gray-500 text-center py-8">Keranjang kosong</p>';
         totalElement.textContent = 'Rp 0';
         btnProcess.disabled = true;
+        syncPaymentState();
         return;
     }
 
@@ -181,25 +217,91 @@ function updateCart() {
 
     cartContainer.innerHTML = html;
     totalElement.textContent = 'Rp ' + total.toLocaleString('id-ID');
-    btnProcess.disabled = false;
 
-    calculateChange();
+    syncPaymentState();
 }
 
-document.getElementById('paidAmount').addEventListener('input', calculateChange);
+function syncPaymentState() {
+    if (paymentMethodSelect.value === 'qris') {
+        paidAmountInput.value = getCartTotal();
+        paidAmountInput.setAttribute('readonly', 'readonly');
+        updateChangeDisplay(0);
+        qrisNotice.classList.remove('hidden');
+        paymentConfirmWrapper.classList.remove('hidden');
+    } else {
+        paidAmountInput.removeAttribute('readonly');
+        calculateChange();
+        qrisNotice.classList.add('hidden');
+        paymentConfirmWrapper.classList.add('hidden');
+        paymentConfirmedCheckbox.checked = false;
+    }
+
+    updateProcessButtonState();
+}
+
+paidAmountInput.addEventListener('input', calculateChange);
+paymentMethodSelect.addEventListener('change', handlePaymentMethodChange);
+paymentConfirmedCheckbox.addEventListener('change', updateProcessButtonState);
+
+function getCartTotal() {
+    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+}
+
+function handlePaymentMethodChange() {
+    if (paymentMethodSelect.value === 'qris') {
+        cashPaymentFields.classList.add('hidden');
+        paymentConfirmedCheckbox.checked = false;
+    } else {
+        cashPaymentFields.classList.remove('hidden');
+    }
+
+    syncPaymentState();
+}
+
+function updateProcessButtonState() {
+    const hasItems = cart.length > 0;
+    const total = getCartTotal();
+    const requireConfirm = paymentMethodSelect.value === 'qris';
+    const confirmed = paymentConfirmedCheckbox.checked;
+    const paid = parseFloat(paidAmountInput.value) || 0;
+    const cashReady = paymentMethodSelect.value === 'cash'
+        ? paid >= total && total > 0
+        : true;
+    const disabled = !hasItems || !cashReady || (requireConfirm && !confirmed);
+
+    btnProcess.disabled = disabled;
+    btnProcess.classList.toggle('opacity-50', disabled);
+    btnProcess.classList.toggle('cursor-not-allowed', disabled);
+    btnProcess.classList.toggle('ring-2', !disabled);
+    btnProcess.classList.toggle('ring-offset-2', !disabled);
+    btnProcess.classList.toggle('ring-sky-300', !disabled);
+}
 
 function calculateChange() {
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
-    const change = paid - total;
+    if (paymentMethodSelect.value === 'qris') {
+        updateChangeDisplay(0);
+        updateProcessButtonState();
+        return;
+    }
 
-    document.getElementById('changeAmount').textContent = 'Rp ' + (change >= 0 ? change : 0).toLocaleString('id-ID');
+    const total = getCartTotal();
+    const paid = parseFloat(paidAmountInput.value) || 0;
+    const change = paid - total;
+    updateChangeDisplay(change);
+    updateProcessButtonState();
+}
+
+function updateChangeDisplay(amount) {
+    const formatted = 'Rp ' + (amount >= 0 ? amount : 0).toLocaleString('id-ID');
+    changeAmountElement.textContent = formatted;
+    changeAmountQris.textContent = formatted;
 }
 
 function clearCart() {
     if (confirm('Yakin ingin mengosongkan keranjang?')) {
         cart = [];
-        document.getElementById('paidAmount').value = '';
+        paidAmountInput.value = '';
+        paymentConfirmedCheckbox.checked = false;
         updateCart();
     }
 }
@@ -210,12 +312,21 @@ function processTransaction() {
         return;
     }
 
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const paid = parseFloat(document.getElementById('paidAmount').value) || 0;
+    const total = getCartTotal();
+    let paid = parseFloat(paidAmountInput.value) || 0;
+    const method = paymentMethodSelect.value;
 
-    if (paid < total) {
+    if (method === 'cash' && paid < total) {
         alert('Jumlah pembayaran kurang!');
         return;
+    }
+
+    if (method === 'qris') {
+        if (!paymentConfirmedCheckbox.checked) {
+            alert('Centang konfirmasi pembayaran QRIS terlebih dahulu.');
+            return;
+        }
+        paid = total;
     }
 
     const form = document.createElement('form');
@@ -242,15 +353,29 @@ function processTransaction() {
         form.appendChild(qtyInput);
     });
 
+    const methodInput = document.createElement('input');
+    methodInput.type = 'hidden';
+    methodInput.name = 'payment_method';
+    methodInput.value = method;
+    form.appendChild(methodInput);
+
     const paidInput = document.createElement('input');
     paidInput.type = 'hidden';
     paidInput.name = 'paid_amount';
     paidInput.value = paid;
     form.appendChild(paidInput);
 
+    const confirmedInput = document.createElement('input');
+    confirmedInput.type = 'hidden';
+    confirmedInput.name = 'payment_confirmed';
+    confirmedInput.value = paymentConfirmedCheckbox.checked ? 1 : 0;
+    form.appendChild(confirmedInput);
+
     document.body.appendChild(form);
     form.submit();
 }
+
+handlePaymentMethodChange();
 </script>
 @endpush
 @endsection

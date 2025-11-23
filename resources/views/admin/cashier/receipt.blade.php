@@ -22,8 +22,12 @@
                 <span class="font-semibold">{{ $transaction->created_at->format('d/m/Y H:i') }}</span>
             </div>
             <div class="flex justify-between">
-                <span class="text-gray-600">Kasir:</span>
+                <span class="text-gray-600">Petugas Penjualan:</span>
                 <span class="font-semibold">{{ $transaction->user->name }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-600">Metode Pembayaran:</span>
+                <span class="font-semibold">{{ $transaction->payment_method === 'qris' ? 'QRIS' : 'Tunai' }}</span>
             </div>
         </div>
 
@@ -74,7 +78,7 @@
             <i class="fas fa-print mr-2"></i>Cetak Struk
         </button>
         <a href="{{ route('admin.cashier.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-400">
-            <i class="fas fa-cash-register mr-2"></i>Transaksi Baru
+            <i class="fas fa-cart-shopping mr-2"></i>Transaksi Baru
         </a>
     </div>
 </div>
