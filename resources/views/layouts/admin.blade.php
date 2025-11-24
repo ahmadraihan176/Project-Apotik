@@ -27,11 +27,11 @@
                 </a>
                 <a href="{{ route('admin.medicines.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.medicines.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-pills mr-3"></i>
-                    <span>Data Obat</span>
+                    <span>Inventory</span>
                 </a>
                 <a href="{{ route('admin.cashier.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.index') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-cash-register mr-3"></i>
-                    <span>Kasir</span>
+                    <i class="fas fa-cart-shopping mr-3"></i>
+                    <span>Penjualan</span>
                 </a>
                 <a href="{{ route('admin.cashier.history') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.history') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-history mr-3"></i>

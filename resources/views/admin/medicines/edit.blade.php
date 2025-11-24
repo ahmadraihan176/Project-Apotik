@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit Obat')
-@section('header', 'Edit Data Obat')
+@section('header', 'Edit Inventory')
 
 @section('content')
 <div class="max-w-2xl mx-auto">
