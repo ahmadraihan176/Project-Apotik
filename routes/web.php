@@ -6,23 +6,31 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MedicineController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PresensiController;
 
-// Public routes
+// Home
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// Auth routes
+// Role
+Route::get('/pilih-role', [RoleController::class, 'index'])->name('pilih.role');
+Route::post('/pilih-role', [RoleController::class, 'select'])->name('role.select');
+
+// Presensi (Karyawan)
+Route::get('/presensi', [PresensiController::class, 'form'])->name('presensi.form');
+Route::post('/presensi', [PresensiController::class, 'store'])->name('presensi.store');
+
+// Admin Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Admin routes (protected)
+// Admin Panel (protected)
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
-    // Medicines CRUD
+
     Route::resource('medicines', MedicineController::class);
-    
-    // Cashier
+
     Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
     Route::post('/cashier', [CashierController::class, 'store'])->name('cashier.store');
     Route::get('/cashier/receipt/{id}', [CashierController::class, 'receipt'])->name('cashier.receipt');
