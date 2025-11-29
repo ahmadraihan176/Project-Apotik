@@ -38,7 +38,7 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <button onclick="showDetails({{ $transaction->id }})" 
+                            <button onclick="showDetails('{{ $transaction->id }}')">
                                 class="text-blue-600 hover:text-blue-900">
                                 <i class="fas fa-eye"></i> Detail
                             </button>
