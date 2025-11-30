@@ -9,7 +9,10 @@ return new class extends Migration
     public function up()
     {
         Schema::table('presensis', function (Blueprint $table) {
-            $table->dropColumn('keterangan');
+            // Cek apakah kolom keterangan ada sebelum menghapus
+            if (Schema::hasColumn('presensis', 'keterangan')) {
+                $table->dropColumn('keterangan');
+            }
         });
     }
 

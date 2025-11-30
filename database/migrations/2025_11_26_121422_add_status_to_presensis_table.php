@@ -9,7 +9,10 @@ return new class extends Migration
     public function up()
     {
         Schema::table('presensis', function (Blueprint $table) {
-            $table->boolean('status')->default(0); // 0 = tidak hadir, 1 = hadir
+            // Cek apakah kolom status sudah ada
+            if (!Schema::hasColumn('presensis', 'status')) {
+                $table->boolean('status')->default(0); // 0 = tidak hadir, 1 = hadir
+            }
         });
     }
 
