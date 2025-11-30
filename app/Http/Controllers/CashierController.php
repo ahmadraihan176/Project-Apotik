@@ -118,7 +118,13 @@ class CashierController extends Controller
     {
         $transactions = Transaction::with('details.medicine', 'user')
             ->latest()
-            ->paginate(15);
-        return view('admin.cashier.history', compact('transactions'));
+            ->get();
+        
+        // Kelompokkan transaksi berdasarkan hari
+        $groupedTransactions = $transactions->groupBy(function($transaction) {
+            return $transaction->created_at->format('Y-m-d');
+        });
+        
+        return view('admin.cashier.history', compact('groupedTransactions'));
     }
 }

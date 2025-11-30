@@ -3,11 +3,13 @@
 @section('title', 'Presensi Karyawan')
 
 @section('content')
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-500 to-indigo-600 p-6">
+<div class="min-h-screen flex items-center justify-center gradient-bg p-6">
 
     <div class="bg-white shadow-2xl rounded-3xl p-8 w-full max-w-lg">
         <div class="text-center mb-6">
-            <i class="fas fa-user-check text-5xl text-sky-600 mb-3"></i>
+            <div class="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-user-check text-4xl text-sky-600"></i>
+            </div>
             <h2 class="text-3xl font-bold text-gray-800">Presensi Karyawan</h2>
             <p class="text-gray-500 mt-1">Silakan pilih nama dan lakukan presensi</p>
         </div>
@@ -33,12 +35,12 @@
                     @endphp
 
                     @foreach($karyawan as $nama)
-                        <label class="flex items-center p-3 border rounded-xl hover:bg-sky-50 cursor-pointer transition">
+                        <label class="flex items-center p-3 border-2 border-gray-200 rounded-xl hover:border-sky-400 hover:bg-sky-50 cursor-pointer transition">
 
                             <input type="checkbox"
                                    name="nama"
                                    value="{{ $nama }}"
-                                   class="nama-checkbox w-5 h-5 text-sky-600 rounded mr-3" />
+                                   class="nama-checkbox w-5 h-5 text-sky-600 rounded mr-3 focus:ring-sky-500" />
 
                             <span class="text-gray-700 font-medium">{{ $nama }}</span>
                         </label>
@@ -47,14 +49,14 @@
             </div>
 
             <button type="submit"
-                class="w-full py-3 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-semibold text-lg shadow-lg hover:opacity-90 transition">
+                class="w-full py-3 rounded-xl gradient-bg text-white font-semibold text-lg shadow-lg hover:opacity-90 transition">
                 <i class="fas fa-check-circle mr-2"></i> Submit Presensi
             </button>
 
         </form>
 
         <div class="text-center mt-6">
-            <a href="{{ route('login') }}" class="text-sky-600 hover:underline">
+            <a href="{{ route('login') }}" class="text-sky-600 hover:text-sky-800 font-medium transition">
                 <i class="fas fa-arrow-left mr-2"></i>Kembali ke Halaman Login
             </a>
         </div>
