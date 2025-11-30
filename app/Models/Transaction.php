@@ -37,8 +37,28 @@ class Transaction extends Model
     public static function generateCode()
     {
         $date = now()->format('Ymd');
-        $last = self::whereDate('created_at', now())->latest()->first();
-        $number = $last ? (int)substr($last->transaction_code, -4) + 1 : 1;
-        return 'TRX' . $date . str_pad($number, 4, '0', STR_PAD_LEFT);
+        $todayTransactions = self::whereDate('created_at', now())->get();
+        
+        // Cari nomor urut terakhir untuk hari ini
+        $maxNumber = 0;
+        foreach ($todayTransactions as $transaction) {
+            // Handle format baru: TRX-YYYYMMDD-XXX
+            if (preg_match('/TRX-' . $date . '-(\d+)$/', $transaction->transaction_code, $matches)) {
+                $number = (int)$matches[1];
+                if ($number > $maxNumber) {
+                    $maxNumber = $number;
+                }
+            }
+            // Handle format lama: TRXYYYYMMDDXXXX (untuk backward compatibility)
+            elseif (preg_match('/TRX' . $date . '(\d{4})$/', $transaction->transaction_code, $matches)) {
+                $number = (int)$matches[1];
+                if ($number > $maxNumber) {
+                    $maxNumber = $number;
+                }
+            }
+        }
+        
+        $nextNumber = $maxNumber + 1;
+        return 'TRX-' . $date . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 }

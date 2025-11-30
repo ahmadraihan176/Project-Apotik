@@ -5,6 +5,7 @@ use App\Http\Controllers\CashierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MedicineController;
+use App\Http\Controllers\StockOpnameController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PresensiController;
@@ -35,4 +36,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/cashier', [CashierController::class, 'store'])->name('cashier.store');
     Route::get('/cashier/receipt/{id}', [CashierController::class, 'receipt'])->name('cashier.receipt');
     Route::get('/cashier/history', [CashierController::class, 'history'])->name('cashier.history');
+    
+    // Stock Opname
+    Route::resource('stock-opname', StockOpnameController::class);
+    Route::post('/stock-opname/{stockOpname}/approve', [StockOpnameController::class, 'approve'])->name('stock-opname.approve');
 });

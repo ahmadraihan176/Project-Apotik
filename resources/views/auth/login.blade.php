@@ -3,7 +3,7 @@
 @section('title', 'Login Admin / Presensi Karyawan')
 
 @section('content')
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-500 to-blue-700 py-12 px-4">
+<div class="min-h-screen flex items-center justify-center gradient-bg py-12 px-4">
     <div class="max-w-md w-full">
 
         {{-- Card --}}
@@ -11,7 +11,9 @@
 
             {{-- Header --}}
             <div class="text-center mb-6">
-                <i class="fas fa-building-user text-5xl text-sky-600 mb-3"></i>
+                <div class="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-building-user text-4xl text-sky-600"></i>
+                </div>
                 <h2 class="text-3xl font-extrabold text-gray-800">Langse Farma</h2>
                 <p class="text-gray-600 mt-1">Silakan pilih role terlebih dahulu</p>
             </div>
@@ -71,8 +73,8 @@
                         @endphp
 
                         @foreach($karyawanList as $nama)
-                            <label class="flex items-center space-x-3 bg-sky-50 px-4 py-3 rounded-lg border cursor-pointer hover:bg-sky-100 transition">
-                                <input type="radio" name="nama" value="{{ $nama }}" class="h-5 w-5 text-sky-600">
+                            <label class="flex items-center space-x-3 bg-sky-50 px-4 py-3 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-sky-400 hover:bg-sky-100 transition">
+                                <input type="radio" name="nama" value="{{ $nama }}" class="h-5 w-5 text-sky-600 focus:ring-sky-500">
                                 <span class="text-gray-800 font-medium">{{ $nama }}</span>
                             </label>
                         @endforeach
@@ -81,14 +83,14 @@
 
                 {{-- SUBMIT BUTTON --}}
                 <button type="submit"
-                    class="w-full bg-sky-600 text-white font-semibold py-3 rounded-lg shadow-md hover:bg-sky-700 transition">
+                    class="w-full gradient-bg text-white font-semibold py-3 rounded-lg shadow-lg hover:opacity-90 transition">
                     <i class="fas fa-check-circle mr-2"></i>Submit
                 </button>
             </form>
 
             {{-- BACK BUTTON --}}
             <div class="mt-6 text-center">
-                <a href="{{ route('home') }}" class="text-sky-200 hover:text-white transition">
+                <a href="{{ route('home') }}" class="text-white hover:text-gray-100 font-medium transition">
                     <i class="fas fa-arrow-left mr-2"></i>Kembali ke Beranda
                 </a>
             </div>

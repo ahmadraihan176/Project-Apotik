@@ -33,4 +33,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function stockOpnames()
+    {
+        return $this->hasMany(StockOpname::class);
+    }
+
+    public function approvedStockOpnames()
+    {
+        return $this->hasMany(StockOpname::class, 'approved_by');
+    }
 }
