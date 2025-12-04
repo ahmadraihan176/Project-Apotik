@@ -5,11 +5,15 @@
 
 @section('content')
 <div class="bg-white rounded-lg shadow-md p-6">
-    <div class="flex justify-between items-center mb-6">
+    <div class="mb-6 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-gray-800">Daftar Obat</h3>
-        <a href="{{ route('admin.medicines.create') }}" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
-            <i class="fas fa-plus mr-2"></i>Tambah Obat
-        </a>
+        <div class="flex gap-2">
+            <input type="text" id="searchMedicine" placeholder="Cari obat berdasarkan nama..." 
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 w-64">
+            <button type="button" onclick="resetSearch()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 hidden" id="resetBtn">
+                <i class="fas fa-times mr-2"></i>Reset
+            </button>
+        </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -24,9 +28,10 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <tbody class="bg-white divide-y divide-gray-200" id="medicineTableBody">
                 @forelse($medicines as $medicine)
-                    <tr>
+                    <tr class="medicine-row" 
+                        data-name="{{ strtolower($medicine->name) }}">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $medicine->code }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">{{ $medicine->name }}</div>
@@ -44,8 +49,8 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $medicine->unit }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                            <a href="{{ route('admin.medicines.edit', $medicine) }}" class="text-blue-600 hover:text-blue-900">
-                                <i class="fas fa-edit"></i> Edit
+                            <a href="{{ route('admin.medicines.show', $medicine) }}" class="text-green-600 hover:text-green-900" title="Detail">
+                                <i class="fas fa-eye"></i> Detail
                             </a>
                             <form action="{{ route('admin.medicines.destroy', $medicine) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus obat ini?')">
                                 @csrf
@@ -57,7 +62,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr>
+                    <tr id="emptyRow">
                         <td colspan="6" class="px-6 py-4 text-center text-gray-500">Belum ada inventory</td>
                     </tr>
                 @endforelse
@@ -65,8 +70,104 @@
         </table>
     </div>
 
-    <div class="mt-6">
-        {{ $medicines->links() }}
-    </div>
 </div>
+
+@push('scripts')
+<script>
+// Search functionality - real-time filtering like cashier
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchMedicine');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('.medicine-row');
+        const emptyRow = document.getElementById('emptyRow');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const name = row.dataset.name || '';
+            
+            // Check if search term matches name only
+            if (name.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Show/hide empty message
+        if (visibleCount === 0 && searchTerm !== '') {
+            // Hide original empty row if exists
+            if (emptyRow && emptyRow.textContent.includes('Belum ada inventory')) {
+                emptyRow.style.display = 'none';
+            }
+            
+            // Check if "not found" message already exists
+            let notFoundRow = document.getElementById('notFoundRow');
+            if (!notFoundRow) {
+                const tbody = document.getElementById('medicineTableBody');
+                notFoundRow = document.createElement('tr');
+                notFoundRow.id = 'notFoundRow';
+                notFoundRow.innerHTML = '<td colspan="6" class="px-6 py-4 text-center text-gray-500">Tidak ada obat ditemukan</td>';
+                tbody.appendChild(notFoundRow);
+            } else {
+                notFoundRow.style.display = '';
+            }
+        } else {
+            // Hide "not found" message
+            const notFoundRow = document.getElementById('notFoundRow');
+            if (notFoundRow) {
+                notFoundRow.style.display = 'none';
+            }
+            
+            // Show original empty row if no medicines at all
+            if (emptyRow && rows.length === 0) {
+                emptyRow.style.display = '';
+            }
+        }
+        
+        // Show/hide reset button
+        if (searchTerm !== '') {
+            resetBtn.classList.remove('hidden');
+        } else {
+            resetBtn.classList.add('hidden');
+        }
+    });
+});
+
+function resetSearch() {
+    const searchInput = document.getElementById('searchMedicine');
+    const rows = document.querySelectorAll('.medicine-row');
+    const resetBtn = document.getElementById('resetBtn');
+    const notFoundRow = document.getElementById('notFoundRow');
+    const emptyRow = document.getElementById('emptyRow');
+    
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Show all rows
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+    
+    // Hide reset button
+    resetBtn.classList.add('hidden');
+    
+    // Hide "not found" message
+    if (notFoundRow) {
+        notFoundRow.style.display = 'none';
+    }
+    
+    // Show original empty row if no medicines
+    if (emptyRow && rows.length === 0) {
+        emptyRow.style.display = '';
+    }
+}
+</script>
+@endpush
 @endsection

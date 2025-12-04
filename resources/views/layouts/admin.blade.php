@@ -29,6 +29,14 @@
                     <i class="fas fa-pills mr-3"></i>
                     <span>Inventory</span>
                 </a>
+                <a href="{{ route('admin.penerimaan-farmasi.create') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.penerimaan-farmasi.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-box mr-3"></i>
+                    <span>Penerimaan Farmasi</span>
+                </a>
+                <a href="{{ route('admin.jatuh-tempo.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.jatuh-tempo.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-calendar-times mr-3"></i>
+                    <span>Jatuh Tempo</span>
+                </a>
                 <a href="{{ route('admin.stock-opname.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.stock-opname.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-clipboard-check mr-3"></i>
                     <span>Stok Opname</span>
