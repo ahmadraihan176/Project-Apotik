@@ -9,6 +9,8 @@ use App\Http\Controllers\StockOpnameController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\PenerimaanFarmasiController;
+use App\Http\Controllers\JatuhTempoController;
 
 // Home
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -31,13 +33,24 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('medicines', MedicineController::class);
+    Route::get('/medicines/autocomplete', [MedicineController::class, 'autocomplete'])->name('medicines.autocomplete');
 
     Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
     Route::post('/cashier', [CashierController::class, 'store'])->name('cashier.store');
     Route::get('/cashier/receipt/{id}', [CashierController::class, 'receipt'])->name('cashier.receipt');
     Route::get('/cashier/history', [CashierController::class, 'history'])->name('cashier.history');
     
+    // Penerimaan Farmasi
+    Route::get('/penerimaan-farmasi', [PenerimaanFarmasiController::class, 'create'])->name('penerimaan-farmasi.create');
+    Route::post('/penerimaan-farmasi', [PenerimaanFarmasiController::class, 'store'])->name('penerimaan-farmasi.store');
+    
+    // Jatuh Tempo
+    Route::get('/jatuh-tempo', [JatuhTempoController::class, 'index'])->name('jatuh-tempo.index');
+    Route::post('/jatuh-tempo/{id}/mark-paid', [JatuhTempoController::class, 'markAsPaid'])->name('jatuh-tempo.mark-paid');
+    
     // Stock Opname
-    Route::resource('stock-opname', StockOpnameController::class);
+    // Route khusus harus diletakkan SEBELUM resource route untuk menghindari konflik
+    Route::get('/stock-opname/get-medicine-batch', [StockOpnameController::class, 'getMedicineBatch'])->name('stock-opname.get-medicine-batch');
     Route::post('/stock-opname/{stockOpname}/approve', [StockOpnameController::class, 'approve'])->name('stock-opname.approve');
+    Route::resource('stock-opname', StockOpnameController::class);
 });

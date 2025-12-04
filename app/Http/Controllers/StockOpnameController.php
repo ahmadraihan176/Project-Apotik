@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\StockOpname;
 use App\Models\StockOpnameDetail;
 use App\Models\Medicine;
+use App\Models\PenerimaanBarangDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -23,6 +24,67 @@ class StockOpnameController extends Controller
     {
         $medicines = Medicine::orderBy('name')->get();
         return view('admin.stock-opname.create', compact('medicines'));
+    }
+
+    public function getMedicineBatch(Request $request)
+    {
+        try {
+            $medicineId = $request->get('medicine_id');
+            
+            if (!$medicineId) {
+                return response()->json([
+                    'success' => false,
+                    'batch_number' => null, 
+                    'expired_date' => null,
+                    'message' => 'Medicine ID tidak ditemukan'
+                ]);
+            }
+
+            // Convert to integer to ensure proper matching
+            $medicineId = (int) $medicineId;
+
+            // Ambil batch number terbaru dari penerimaan barang detail untuk obat ini
+            // Cari yang memiliki no_batch tidak kosong
+            $latestDetail = PenerimaanBarangDetail::where('medicine_id', $medicineId)
+                ->whereRaw("no_batch IS NOT NULL AND no_batch != '' AND TRIM(no_batch) != ''")
+                ->orderBy('created_at', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            // Log untuk debugging (bisa dihapus setelah fix)
+            \Log::info('Batch lookup', [
+                'medicine_id' => $medicineId,
+                'found' => $latestDetail ? true : false,
+                'batch_number' => $latestDetail ? $latestDetail->no_batch : null
+            ]);
+
+            if ($latestDetail && !empty(trim($latestDetail->no_batch))) {
+                return response()->json([
+                    'success' => true,
+                    'batch_number' => trim($latestDetail->no_batch),
+                    'expired_date' => $latestDetail->expired_date ? $latestDetail->expired_date->format('Y-m-d') : null
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'batch_number' => null, 
+                'expired_date' => null,
+                'message' => 'Tidak ada data batch untuk obat ini. Pastikan obat sudah pernah diterima melalui Penerimaan Farmasi dengan nomor batch.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in getMedicineBatch', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'batch_number' => null,
+                'expired_date' => null,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function store(Request $request)

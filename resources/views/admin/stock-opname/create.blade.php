@@ -78,11 +78,20 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2 text-sm">Obat *</label>
-                    <select name="details[${rowCount}][medicine_id]" required onchange="updateSystemStock(${rowCount}, this.value)"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
-                        <option value="">Pilih Obat</option>
-                        ${medicines.map(m => `<option value="${m.id}" ${m.id == medicineId ? 'selected' : ''}>${m.name} (Stok: ${m.stock} ${m.unit})</option>`).join('')}
-                    </select>
+                    <div class="relative">
+                        <input type="text" 
+                            id="medicine_search_${rowCount}" 
+                            placeholder="Cari obat..." 
+                            autocomplete="off"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            oninput="searchMedicine(${rowCount}, this.value)"
+                            onfocus="showMedicineDropdown(${rowCount})"
+                            onblur="setTimeout(() => hideMedicineDropdown(${rowCount}), 200)">
+                        <input type="hidden" name="details[${rowCount}][medicine_id]" id="medicine_id_${rowCount}" required>
+                        <div id="medicine_dropdown_${rowCount}" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            <!-- Dropdown items will be inserted here -->
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2 text-sm">Stok Sistem</label>
@@ -93,14 +102,15 @@
 
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-gray-700 font-semibold mb-2 text-sm">Nomor Batch</label>
-                    <input type="text" name="details[${rowCount}][batch_number]" value="${medicineData?.batch_number || ''}"
+                    <label class="block text-gray-700 font-semibold mb-2 text-sm">Nomor Batch <span class="text-xs text-gray-500">(otomatis dari penerimaan)</span></label>
+                    <input type="text" name="details[${rowCount}][batch_number]" id="batch_number_${rowCount}" value="${medicineData?.batch_number || ''}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        placeholder="Masukkan nomor batch">
+                        placeholder="Akan terisi otomatis saat memilih obat">
+                    <div id="batch_status_${rowCount}" class="text-xs mt-1 hidden"></div>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2 text-sm">Tanggal Kadaluarsa</label>
-                    <input type="date" name="details[${rowCount}][expired_date]" value="${medicineData?.expired_date || ''}"
+                    <input type="date" name="details[${rowCount}][expired_date]" id="expired_date_${rowCount}" value="${medicineData?.expired_date || ''}"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
                 </div>
             </div>
@@ -144,7 +154,168 @@
         const medicine = medicines.find(m => m.id == medicineId);
         if (medicine) {
             document.getElementById(`system_stock_${rowId}`).value = medicine.stock;
+            
+            // Auto-fill batch number and expired date from penerimaan farmasi
+            const batchInput = document.getElementById(`batch_number_${rowId}`);
+            const expiredInput = document.getElementById(`expired_date_${rowId}`);
+            const batchStatus = document.getElementById(`batch_status_${rowId}`);
+            
+            if (batchInput) {
+                batchInput.value = ''; // Clear first
+                batchInput.style.backgroundColor = '#fef3c7'; // Yellow while loading
+            }
+            
+            if (batchStatus) {
+                batchStatus.textContent = 'Mengambil data...';
+                batchStatus.classList.remove('hidden');
+                batchStatus.classList.remove('text-green-600', 'text-red-600');
+                batchStatus.classList.add('text-blue-600');
+            }
+            
+            const url = `{{ route('admin.stock-opname.get-medicine-batch') }}?medicine_id=${medicineId}`;
+            console.log('Fetching batch data from:', url); // Debug log
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+                .then(response => {
+                    console.log('Response status:', response.status); // Debug log
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Network response was not ok');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Batch data received:', data); // Debug log
+                    
+                    if (data.success && data.batch_number && batchInput) {
+                        batchInput.value = data.batch_number;
+                        batchInput.style.backgroundColor = '#d1fae5'; // Light green to show it's auto-filled
+                        setTimeout(() => {
+                            batchInput.style.backgroundColor = '';
+                        }, 3000);
+                        
+                        if (batchStatus) {
+                            batchStatus.textContent = '✓ Nomor batch berhasil diisi otomatis';
+                            batchStatus.classList.remove('text-blue-600', 'text-red-600');
+                            batchStatus.classList.add('text-green-600');
+                        }
+                    } else {
+                        if (batchInput) {
+                            batchInput.style.backgroundColor = '';
+                        }
+                        if (batchStatus) {
+                            const message = data.message || 'Nomor batch tidak ditemukan di penerimaan farmasi';
+                            batchStatus.textContent = `⚠ ${message}`;
+                            batchStatus.classList.remove('text-blue-600', 'text-green-600');
+                            batchStatus.classList.add('text-red-600');
+                        }
+                    }
+                    
+                    if (data.expired_date && expiredInput) {
+                        expiredInput.value = data.expired_date;
+                        expiredInput.style.backgroundColor = '#d1fae5'; // Light green to show it's auto-filled
+                        setTimeout(() => {
+                            expiredInput.style.backgroundColor = '';
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching batch number:', error);
+                    if (batchInput) {
+                        batchInput.style.backgroundColor = '';
+                    }
+                    if (batchStatus) {
+                        batchStatus.textContent = `✗ Error: ${error.message || 'Gagal mengambil data batch'}`;
+                        batchStatus.classList.remove('text-blue-600', 'text-green-600');
+                        batchStatus.classList.add('text-red-600');
+                    }
+                });
         }
+    }
+
+    function searchMedicine(rowId, searchTerm) {
+        const dropdown = document.getElementById(`medicine_dropdown_${rowId}`);
+        const searchLower = searchTerm.toLowerCase().trim();
+        
+        if (searchTerm.length === 0) {
+            showMedicineDropdown(rowId);
+            return;
+        }
+        
+        const filtered = medicines.filter(m => 
+            m.name.toLowerCase().includes(searchLower)
+        );
+        
+        if (filtered.length === 0) {
+            dropdown.innerHTML = '<div class="px-4 py-2 text-gray-500 text-sm">Tidak ada obat ditemukan</div>';
+            dropdown.classList.remove('hidden');
+            return;
+        }
+        
+        dropdown.innerHTML = filtered.map(m => {
+            const escapedName = m.name.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+            return `
+                <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200" 
+                     onclick="selectMedicine(${rowId}, ${m.id}, '${escapedName}', ${m.stock})">
+                    <div class="font-semibold text-gray-800">${m.name}</div>
+                    <div class="text-xs text-gray-500">Stok: ${m.stock} ${m.unit}</div>
+                </div>
+            `;
+        }).join('');
+        
+        dropdown.classList.remove('hidden');
+    }
+
+    function showMedicineDropdown(rowId) {
+        const dropdown = document.getElementById(`medicine_dropdown_${rowId}`);
+        const searchInput = document.getElementById(`medicine_search_${rowId}`);
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        
+        if (searchTerm.length === 0) {
+            // Show all medicines
+            dropdown.innerHTML = medicines.map(m => {
+                const escapedName = m.name.replace(/'/g, "\\'").replace(/"/g, '&quot;').replace(/\n/g, ' ');
+                return `
+                    <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200" 
+                         onclick="selectMedicine(${rowId}, ${m.id}, '${escapedName}', ${m.stock})">
+                        <div class="font-semibold text-gray-800">${m.name}</div>
+                        <div class="text-xs text-gray-500">Stok: ${m.stock} ${m.unit}</div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            searchMedicine(rowId, searchTerm);
+        }
+        
+        dropdown.classList.remove('hidden');
+    }
+
+    function hideMedicineDropdown(rowId) {
+        const dropdown = document.getElementById(`medicine_dropdown_${rowId}`);
+        dropdown.classList.add('hidden');
+    }
+
+    function selectMedicine(rowId, medicineId, medicineName, stock) {
+        const searchInput = document.getElementById(`medicine_search_${rowId}`);
+        const medicineIdInput = document.getElementById(`medicine_id_${rowId}`);
+        const dropdown = document.getElementById(`medicine_dropdown_${rowId}`);
+        
+        searchInput.value = medicineName;
+        medicineIdInput.value = medicineId;
+        dropdown.classList.add('hidden');
+        
+        // Update system stock and fetch batch number
+        // Ensure medicineId is a number
+        const medicineIdNum = parseInt(medicineId);
+        console.log('Selected medicine:', { rowId, medicineId, medicineIdNum, medicineName }); // Debug
+        updateSystemStock(rowId, medicineIdNum);
     }
 
     // Add first row on page load

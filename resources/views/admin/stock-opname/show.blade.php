@@ -59,6 +59,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stok Fisik</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Selisih</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keterangan</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -90,6 +91,11 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-900">{{ $detail->notes ?? '-' }}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <a href="{{ route('admin.medicines.show', $detail->medicine) }}" class="text-green-600 hover:text-green-900" title="Lihat Detail Obat">
+                                    <i class="fas fa-eye"></i> Detail
+                                </a>
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>

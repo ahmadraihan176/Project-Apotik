@@ -29,9 +29,20 @@ class Medicine extends Model
         return $this->hasMany(TransactionDetail::class);
     }
 
+    public function penerimaanBarangDetails()
+    {
+        return $this->hasMany(PenerimaanBarangDetail::class);
+    }
+
     public function reduceStock($quantity)
     {
         $this->stock -= $quantity;
+        $this->save();
+    }
+
+    public function addStock($quantity)
+    {
+        $this->stock += $quantity;
         $this->save();
     }
 }
