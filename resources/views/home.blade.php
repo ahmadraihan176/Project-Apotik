@@ -18,7 +18,6 @@
     </div>
 </nav>
 
-<!-- Hero Section -->
  <!-- Hero Section -->
 <section class="gradient-bg text-white py-20">
     <div class="container mx-auto px-6 text-center">
