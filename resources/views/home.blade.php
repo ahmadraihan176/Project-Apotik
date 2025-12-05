@@ -19,6 +19,7 @@
 </nav>
 
 <!-- Hero Section -->
+ <!-- Hero Section -->
 <section class="gradient-bg text-white py-20">
     <div class="container mx-auto px-6 text-center">
         <h2 class="text-5xl font-bold mb-4">Selamat Datang di Langse Farma</h2>
