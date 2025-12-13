@@ -1,4 +1,8 @@
-@extends('layouts.admin')
+@if(isset($layout) && $layout === 'karyawan')
+    @extends('layouts.karyawan')
+@else
+    @extends('layouts.admin')
+@endif
 
 @section('title', 'Edit Stok Opname')
 @section('header', 'Edit Stok Opname')
@@ -17,7 +21,7 @@
 @endif
 
 <div class="bg-white rounded-lg shadow-md p-6">
-    <form action="{{ route('admin.stock-opname.update', $stockOpname) }}" method="POST" id="opnameForm">
+    <form action="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.stock-opname.update', $stockOpname) }}" method="POST" id="opnameForm">
         @csrf
         @method('PUT')
         
@@ -58,7 +62,7 @@
             <button type="submit" name="save_as_draft" value="1" class="flex-1 bg-yellow-500 text-white font-semibold py-2 rounded-lg hover:bg-yellow-600">
                 <i class="fas fa-file-alt mr-2"></i>Update sebagai Draft
             </button>
-            <a href="{{ route('admin.stock-opname.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-400">
+            <a href="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.stock-opname.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-400">
                 <i class="fas fa-times mr-2"></i>Batal
             </a>
         </div>

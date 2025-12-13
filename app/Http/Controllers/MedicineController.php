@@ -11,12 +11,14 @@ class MedicineController extends Controller
     public function index()
     {
         $medicines = Medicine::latest()->paginate(10);
-        return view('admin.medicines.index', compact('medicines'));
+        $layout = getLayoutName();
+        return view('admin.medicines.index', compact('medicines', 'layout'));
     }
 
     public function create()
     {
-        return view('admin.medicines.create');
+        $layout = getLayoutName();
+        return view('admin.medicines.create', compact('layout'));
     }
 
     public function store(Request $request)
@@ -34,13 +36,15 @@ class MedicineController extends Controller
 
         Medicine::create($validated);
 
-        return redirect()->route('admin.medicines.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.medicines.index')
             ->with('success', 'Inventory berhasil ditambahkan!');
     }
 
     public function edit(Medicine $medicine)
     {
-        return view('admin.medicines.edit', compact('medicine'));
+        $layout = getLayoutName();
+        return view('admin.medicines.edit', compact('medicine', 'layout'));
     }
 
     public function update(Request $request, Medicine $medicine)
@@ -56,7 +60,8 @@ class MedicineController extends Controller
 
         $medicine->update($validated);
 
-        return redirect()->route('admin.medicines.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.medicines.index')
             ->with('success', 'Inventory berhasil diupdate!');
     }
 
@@ -64,7 +69,8 @@ class MedicineController extends Controller
     {
         $medicine->delete();
 
-        return redirect()->route('admin.medicines.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.medicines.index')
             ->with('success', 'Inventory berhasil dihapus!');
     }
 }

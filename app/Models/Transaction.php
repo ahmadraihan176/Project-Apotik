@@ -2,12 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    use HasFactory;
 
     protected $fillable = [
         'transaction_code',
@@ -42,15 +40,8 @@ class Transaction extends Model
         // Cari nomor urut terakhir untuk hari ini
         $maxNumber = 0;
         foreach ($todayTransactions as $transaction) {
-            // Handle format baru: TRX-YYYYMMDD-XXX
+            // Format: TRX-YYYYMMDD-XXX
             if (preg_match('/TRX-' . $date . '-(\d+)$/', $transaction->transaction_code, $matches)) {
-                $number = (int)$matches[1];
-                if ($number > $maxNumber) {
-                    $maxNumber = $number;
-                }
-            }
-            // Handle format lama: TRXYYYYMMDDXXXX (untuk backward compatibility)
-            elseif (preg_match('/TRX' . $date . '(\d{4})$/', $transaction->transaction_code, $matches)) {
                 $number = (int)$matches[1];
                 if ($number > $maxNumber) {
                     $maxNumber = $number;

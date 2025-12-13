@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Admin Panel') - Langse Farma</title>
+    <title>@yield('title', 'Dashboard Karyawan') - Langse Farma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -18,37 +18,30 @@
         <aside class="w-64 gradient-bg text-white">
             <div class="p-6">
                 <h2 class="text-2xl font-bold">Langse Farma</h2>
-                <p class="text-sm opacity-80">Admin Panel</p>
+                <p class="text-sm opacity-80">Karyawan Panel</p>
             </div>
             <nav class="mt-6">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.dashboard') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route('karyawan.dashboard') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('karyawan.dashboard') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-home mr-3"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="{{ route('admin.medicines.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.medicines.*') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route('karyawan.medicines.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('karyawan.medicines.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-pills mr-3"></i>
                     <span>Inventory</span>
                 </a>
-                <a href="{{ route('admin.stock-opname.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.stock-opname.*') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route('karyawan.stock-opname.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('karyawan.stock-opname.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-clipboard-check mr-3"></i>
                     <span>Stok Opname</span>
                 </a>
-                <a href="{{ route('admin.cashier.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.index') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route('karyawan.cashier.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('karyawan.cashier.index') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-cart-shopping mr-3"></i>
                     <span>Penjualan</span>
                 </a>
-                <a href="{{ route('admin.cashier.history') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.history') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route('karyawan.cashier.history') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('karyawan.cashier.history') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-history mr-3"></i>
                     <span>Riwayat Transaksi</span>
                 </a>
-                <a href="{{ route('admin.karyawan.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.karyawan.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-users mr-3"></i>
-                    <span>Master Karyawan</span>
-                </a>
-                <a href="{{ route('admin.presensi.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.presensi.*') ? 'bg-white bg-opacity-20' : '' }}">
-                    <i class="fas fa-calendar-check mr-3"></i>
-                    <span>Presensi Karyawan</span>
-                </a>
+                {{-- Master Karyawan TIDAK ada di menu karyawan --}}
             </nav>
         </aside>
 
@@ -60,10 +53,11 @@
                     <h1 class="text-2xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
                     <div class="flex items-center space-x-4">
                         @php
-                            $userName = auth()->check() && auth()->user() ? auth()->user()->name : 'Admin';
+                            // Tampilkan nama karyawan yang login, atau "Langse Farma" jika tidak ada
+                            $karyawan = auth()->check() && auth()->user() ? auth()->user()->name : 'Langse Farma';
                         @endphp
-                        <span class="text-gray-600">{{ $userName }}</span>
-                        <form action="{{ route('logout') }}" method="POST">
+                        <span class="text-gray-600">{{ $karyawan }}</span>
+                        <form action="{{ route('karyawan.logout') }}" method="POST">
                             @csrf
                             <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
                                 <i class="fas fa-sign-out-alt mr-2"></i>Logout

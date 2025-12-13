@@ -1,4 +1,8 @@
-@extends('layouts.admin')
+@if(isset($layout) && $layout === 'karyawan')
+    @extends('layouts.karyawan')
+@else
+    @extends('layouts.admin')
+@endif
 
 @section('title', 'Riwayat Transaksi')
 @section('header', 'Riwayat Transaksi')

@@ -1,4 +1,8 @@
-@extends('layouts.admin')
+@if(isset($layout) && $layout === 'karyawan')
+    @extends('layouts.karyawan')
+@else
+    @extends('layouts.admin')
+@endif
 
 @section('title', 'Inventory')
 @section('header', 'Inventory')
@@ -7,7 +11,7 @@
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-semibold text-gray-800">Daftar Obat</h3>
-        <a href="{{ route('admin.medicines.create') }}" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
+        <a href="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.medicines.create') }}" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
             <i class="fas fa-plus mr-2"></i>Tambah Obat
         </a>
     </div>
@@ -44,10 +48,10 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $medicine->unit }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                            <a href="{{ route('admin.medicines.edit', $medicine) }}" class="text-blue-600 hover:text-blue-900">
+                            <a href="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.medicines.edit', $medicine) }}" class="text-blue-600 hover:text-blue-900">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
-                            <form action="{{ route('admin.medicines.destroy', $medicine) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus obat ini?')">
+                            <form action="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.medicines.destroy', $medicine) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus obat ini?')">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-red-600 hover:text-red-900">

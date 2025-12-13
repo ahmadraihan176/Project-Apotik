@@ -13,7 +13,8 @@ class CashierController extends Controller
     public function index()
     {
         $medicines = Medicine::where('stock', '>', 0)->get();
-        return view('admin.cashier.index', compact('medicines'));
+        $layout = getLayoutName();
+        return view('admin.cashier.index', compact('medicines', 'layout'));
     }
 
     public function store(Request $request)
@@ -99,7 +100,8 @@ class CashierController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.cashier.receipt', $transaction->id)
+            $prefix = getRoutePrefix();
+            return redirect()->route($prefix . '.cashier.receipt', $transaction->id)
                 ->with('success', 'Transaksi berhasil!');
 
         } catch (\Exception $e) {
@@ -111,7 +113,8 @@ class CashierController extends Controller
     public function receipt($id)
     {
         $transaction = Transaction::with('details.medicine')->findOrFail($id);
-        return view('admin.cashier.receipt', compact('transaction'));
+        $layout = getLayoutName();
+        return view('admin.cashier.receipt', compact('transaction', 'layout'));
     }
 
     public function history()
@@ -125,6 +128,7 @@ class CashierController extends Controller
             return $transaction->created_at->format('Y-m-d');
         });
         
-        return view('admin.cashier.history', compact('groupedTransactions'));
+        $layout = getLayoutName();
+        return view('admin.cashier.history', compact('groupedTransactions', 'layout'));
     }
 }
