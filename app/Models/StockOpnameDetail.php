@@ -50,7 +50,7 @@ class StockOpnameDetail extends Model
             'kadaluarsa' => 'Kadaluarsa',
             'hampir_kadaluarsa' => 'Hampir Kadaluarsa',
             'retur' => 'Retur',
-            default => 'Baik'
+            default => 'Baik',
         };
     }
 }

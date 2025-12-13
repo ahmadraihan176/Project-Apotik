@@ -1,4 +1,8 @@
-@extends('layouts.admin')
+@if(isset($layout) && $layout === 'karyawan')
+    @extends('layouts.karyawan')
+@else
+    @extends('layouts.admin')
+@endif
 
 @section('title', 'Tambah Obat')
 @section('header', 'Tambah Obat Baru')
@@ -6,7 +10,7 @@
 @section('content')
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow-md p-6">
-        <form action="{{ route('admin.medicines.store') }}" method="POST">
+        <form action="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.medicines.store') }}" method="POST">
             @csrf
             
             <div class="mb-4">
@@ -68,7 +72,7 @@
                 <button type="submit" class="flex-1 gradient-bg text-white font-semibold py-2 rounded-lg hover:opacity-90">
                     <i class="fas fa-save mr-2"></i>Simpan
                 </button>
-                <a href="{{ route('admin.medicines.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-400">
+                <a href="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.medicines.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-2 rounded-lg hover:bg-gray-400">
                     <i class="fas fa-times mr-2"></i>Batal
                 </a>
             </div>

@@ -1,4 +1,8 @@
-@extends('layouts.admin')
+@if(isset($layout) && $layout === 'karyawan')
+    @extends('layouts.karyawan')
+@else
+    @extends('layouts.admin')
+@endif
 
 @section('title', 'Detail Stok Opname')
 @section('header', 'Detail Stok Opname')
@@ -99,12 +103,12 @@
 
     <!-- Actions -->
     <div class="flex space-x-4">
-        <a href="{{ route('admin.stock-opname.edit', $stockOpname) }}" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+        <a href="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.stock-opname.edit', $stockOpname) }}" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
             <i class="fas fa-edit mr-2"></i>Edit
         </a>
         @if(!$stockOpname->isApproved())
             @if($stockOpname->isCompleted())
-                <form action="{{ route('admin.stock-opname.approve', $stockOpname) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menyetujui opname ini? Stok akan disesuaikan otomatis.')">
+                <form action="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.stock-opname.approve', $stockOpname) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menyetujui opname ini? Stok akan disesuaikan otomatis.')">
                     @csrf
                     <button type="submit" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
                         <i class="fas fa-check mr-2"></i>Setujui & Sesuaikan Stok
@@ -117,7 +121,7 @@
                 <span class="text-sm">Update akan reset status approval dan revert stok</span>
             </div>
         @endif
-        <a href="{{ route('admin.stock-opname.index') }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+        <a href="{{ route((isset($layout) && $layout === 'karyawan' ? 'karyawan' : 'admin') . '.stock-opname.index') }}" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
             <i class="fas fa-arrow-left mr-2"></i>Kembali
         </a>
     </div>
