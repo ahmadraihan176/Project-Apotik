@@ -331,7 +331,10 @@ function processTransaction() {
 
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '{{ route("admin.cashier.store") }}';
+    @php
+        $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+    @endphp
+    form.action = '{{ route($routePrefix . ".cashier.store") }}';
 
     const csrfToken = document.createElement('input');
     csrfToken.type = 'hidden';

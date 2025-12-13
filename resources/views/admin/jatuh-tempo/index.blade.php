@@ -113,7 +113,10 @@
                             {{ $penerimaan->user->name }}
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm">
-                            <form action="{{ route('admin.jatuh-tempo.mark-paid', $penerimaan->id) }}" method="POST" 
+                            @php
+                                $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+                            @endphp
+                            <form action="{{ route($routePrefix . '.jatuh-tempo.mark-paid', $penerimaan->id) }}" method="POST" 
                                 onsubmit="return confirm('Yakin ingin menandai pembelian ini sebagai sudah dibayar?')">
                                 @csrf
                                 <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">
@@ -132,4 +135,7 @@
     </div>
 </div>
 @endsection
+
+
+
 

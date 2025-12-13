@@ -77,7 +77,10 @@
         <button onclick="window.print()" class="flex-1 gradient-bg text-white font-semibold py-3 rounded-lg hover:opacity-90">
             <i class="fas fa-print mr-2"></i>Cetak Struk
         </button>
-        <a href="{{ route('admin.cashier.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-400">
+        @php
+            $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+        @endphp
+        <a href="{{ route($routePrefix . '.cashier.index') }}" class="flex-1 text-center bg-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-400">
             <i class="fas fa-cart-shopping mr-2"></i>Transaksi Baru
         </a>
     </div>

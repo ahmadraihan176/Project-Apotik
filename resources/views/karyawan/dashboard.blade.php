@@ -1,5 +1,3 @@
-{{-- ADMIN DASHBOARD SELALU MENGGUNAKAN LAYOUT ADMIN --}}
-{{-- Karyawan menggunakan karyawan.dashboard yang terpisah --}}
 @extends('layouts.admin')
 
 @section('title', 'Dashboard')
@@ -121,3 +119,5 @@
     </div>
 </div>
 @endsection
+
+

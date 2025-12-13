@@ -5,7 +5,10 @@
 
 @section('content')
 <div class="bg-white rounded-lg shadow-md p-6">
-    <form action="{{ route('admin.penerimaan-farmasi.store') }}" method="POST" id="receiptForm" novalidate>
+    @php
+        $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+    @endphp
+    <form action="{{ route($routePrefix . '.penerimaan-farmasi.store') }}" method="POST" id="receiptForm" novalidate>
         @csrf
         
         <!-- Informasi Umum Penerimaan -->

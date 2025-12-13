@@ -37,18 +37,13 @@ class StockOpname extends Model
         return $this->hasMany(StockOpnameDetail::class);
     }
 
-    public function isDraft(): bool
+    public function isApproved(): bool
     {
-        return $this->status === 'draft';
+        return $this->status === 'approved';
     }
 
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
-    }
-
-    public function isApproved(): bool
-    {
-        return $this->status === 'approved';
     }
 }

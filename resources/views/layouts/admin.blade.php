@@ -21,34 +21,47 @@
                 <p class="text-sm opacity-80">Admin Panel</p>
             </div>
             <nav class="mt-6">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.dashboard') ? 'bg-white bg-opacity-20' : '' }}">
+                @php
+                    $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+                @endphp
+                <a href="{{ route($routePrefix . '.dashboard') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.dashboard') || request()->routeIs('karyawan.dashboard') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-home mr-3"></i>
                     <span>Dashboard</span>
                 </a>
-                <a href="{{ route('admin.medicines.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.medicines.*') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route($routePrefix . '.medicines.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.medicines.*') || request()->routeIs('karyawan.medicines.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-pills mr-3"></i>
                     <span>Inventory</span>
                 </a>
-                <a href="{{ route('admin.penerimaan-farmasi.create') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.penerimaan-farmasi.*') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route($routePrefix . '.penerimaan-farmasi.create') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.penerimaan-farmasi.*') || request()->routeIs('karyawan.penerimaan-farmasi.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-box mr-3"></i>
                     <span>Penerimaan Farmasi</span>
                 </a>
-                <a href="{{ route('admin.jatuh-tempo.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.jatuh-tempo.*') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route($routePrefix . '.jatuh-tempo.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.jatuh-tempo.*') || request()->routeIs('karyawan.jatuh-tempo.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-calendar-times mr-3"></i>
                     <span>Jatuh Tempo</span>
                 </a>
-                <a href="{{ route('admin.stock-opname.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.stock-opname.*') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route($routePrefix . '.stock-opname.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.stock-opname.*') || request()->routeIs('karyawan.stock-opname.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-clipboard-check mr-3"></i>
                     <span>Stok Opname</span>
                 </a>
-                <a href="{{ route('admin.cashier.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.index') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route($routePrefix . '.cashier.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.index') || request()->routeIs('karyawan.cashier.index') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-cart-shopping mr-3"></i>
                     <span>Penjualan</span>
                 </a>
-                <a href="{{ route('admin.cashier.history') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.history') ? 'bg-white bg-opacity-20' : '' }}">
+                <a href="{{ route($routePrefix . '.cashier.history') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.cashier.history') || request()->routeIs('karyawan.cashier.history') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-history mr-3"></i>
                     <span>Riwayat Transaksi</span>
                 </a>
+                @if(auth()->check() && auth()->user()->role === 'admin')
+                <a href="{{ route('admin.karyawan.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.karyawan.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-users mr-3"></i>
+                    <span>Master Karyawan</span>
+                </a>
+                <a href="{{ route('admin.presensi.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.presensi.*') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-calendar-check mr-3"></i>
+                    <span>Presensi Karyawan</span>
+                </a>
+                @endif
             </nav>
         </aside>
 
@@ -59,8 +72,14 @@
                 <div class="flex items-center justify-between px-8 py-4">
                     <h1 class="text-2xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
                     <div class="flex items-center space-x-4">
-                        <span class="text-gray-600">{{ auth()->user()->name }}</span>
-                        <form action="{{ route('logout') }}" method="POST">
+                        @php
+                            $userName = auth()->check() && auth()->user() ? auth()->user()->name : 'Admin';
+                        @endphp
+                        <span class="text-gray-600">{{ $userName }}</span>
+                        @php
+                            $logoutRoute = request()->routeIs('karyawan.*') ? route('karyawan.logout') : route('logout');
+                        @endphp
+                        <form action="{{ $logoutRoute }}" method="POST">
                             @csrf
                             <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
                                 <i class="fas fa-sign-out-alt mr-2"></i>Logout

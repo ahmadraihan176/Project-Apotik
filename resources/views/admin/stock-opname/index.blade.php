@@ -7,7 +7,10 @@
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-semibold text-gray-800">Daftar Stok Opname</h3>
-        <a href="{{ route('admin.stock-opname.create') }}" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
+        @php
+            $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+        @endphp
+        <a href="{{ route($routePrefix . '.stock-opname.create') }}" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
             <i class="fas fa-plus mr-2"></i>Tambah Opname
         </a>
     </div>
@@ -54,22 +57,22 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                            <a href="{{ route('admin.stock-opname.show', $opname) }}" class="text-blue-600 hover:text-blue-900">
+                            <a href="{{ route($routePrefix . '.stock-opname.show', $opname) }}" class="text-blue-600 hover:text-blue-900">
                                 <i class="fas fa-eye"></i> Detail
                             </a>
                             @if(!$opname->isApproved())
                                 @if($opname->isCompleted())
-                                    <form action="{{ route('admin.stock-opname.approve', $opname) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menyetujui opname ini? Stok akan disesuaikan otomatis.')">
+                                    <form action="{{ route($routePrefix . '.stock-opname.approve', $opname) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menyetujui opname ini? Stok akan disesuaikan otomatis.')">
                                         @csrf
                                         <button type="submit" class="text-green-600 hover:text-green-900">
                                             <i class="fas fa-check"></i> Setujui
                                         </button>
                                     </form>
                                 @endif
-                                <a href="{{ route('admin.stock-opname.edit', $opname) }}" class="text-yellow-600 hover:text-yellow-900">
+                                <a href="{{ route($routePrefix . '.stock-opname.edit', $opname) }}" class="text-yellow-600 hover:text-yellow-900">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>
-                                <form action="{{ route('admin.stock-opname.destroy', $opname) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus opname ini?')">
+                                <form action="{{ route($routePrefix . '.stock-opname.destroy', $opname) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus opname ini?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-red-600 hover:text-red-900">
