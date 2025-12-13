@@ -12,13 +12,18 @@ class MedicineController extends Controller
     {
         // Load all medicines for real-time client-side search (like cashier)
         $medicines = Medicine::latest()->get();
+        $layout = getLayoutName();
         
-        return view('admin.medicines.index', compact('medicines'));
+        // Tentukan view layout berdasarkan role
+        $viewName = $layout === 'karyawan' ? 'admin.medicines.index' : 'admin.medicines.index';
+        
+        return view($viewName, compact('medicines', 'layout'));
     }
 
     public function create()
     {
-        return view('admin.medicines.create');
+        $layout = getLayoutName();
+        return view('admin.medicines.create', compact('layout'));
     }
 
     public function store(Request $request)
@@ -36,13 +41,15 @@ class MedicineController extends Controller
 
         Medicine::create($validated);
 
-        return redirect()->route('admin.medicines.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.medicines.index')
             ->with('success', 'Inventory berhasil ditambahkan!');
     }
 
     public function edit(Medicine $medicine)
     {
-        return view('admin.medicines.edit', compact('medicine'));
+        $layout = getLayoutName();
+        return view('admin.medicines.edit', compact('medicine', 'layout'));
     }
 
     public function update(Request $request, Medicine $medicine)
@@ -58,7 +65,8 @@ class MedicineController extends Controller
 
         $medicine->update($validated);
 
-        return redirect()->route('admin.medicines.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.medicines.index')
             ->with('success', 'Inventory berhasil diupdate!');
     }
 
@@ -83,7 +91,8 @@ class MedicineController extends Controller
     {
         $medicine->delete();
 
-        return redirect()->route('admin.medicines.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.medicines.index')
             ->with('success', 'Inventory berhasil dihapus!');
     }
 

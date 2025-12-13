@@ -13,6 +13,11 @@
             <button type="button" onclick="resetSearch()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 hidden" id="resetBtn">
                 <i class="fas fa-times mr-2"></i>Reset
             </button>
+            @if(auth()->check() && auth()->user()->role === 'admin')
+            <a href="{{ route('admin.medicines.create') }}" class="px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
+                <i class="fas fa-plus mr-2"></i>Tambah Obat
+            </a>
+            @endif
         </div>
     </div>
 
@@ -49,8 +54,15 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $medicine->unit }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                            <a href="{{ route('admin.medicines.show', $medicine) }}" class="text-green-600 hover:text-green-900" title="Detail">
+                            @php
+                                $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
+                            @endphp
+                            <a href="{{ route($routePrefix . '.medicines.show', $medicine) }}" class="text-green-600 hover:text-green-900" title="Detail">
                                 <i class="fas fa-eye"></i> Detail
+                            </a>
+                            @if(auth()->check() && auth()->user()->role === 'admin')
+                            <a href="{{ route('admin.medicines.edit', $medicine) }}" class="text-blue-600 hover:text-blue-900">
+                                <i class="fas fa-edit"></i> Edit
                             </a>
                             <form action="{{ route('admin.medicines.destroy', $medicine) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin menghapus obat ini?')">
                                 @csrf
@@ -59,6 +71,7 @@
                                     <i class="fas fa-trash"></i> Hapus
                                 </button>
                             </form>
+                            @endif
                         </td>
                     </tr>
                 @empty

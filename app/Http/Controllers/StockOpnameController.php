@@ -17,13 +17,15 @@ class StockOpnameController extends Controller
             ->latest()
             ->paginate(10);
         
-        return view('admin.stock-opname.index', compact('opnames'));
+        $layout = getLayoutName();
+        return view('admin.stock-opname.index', compact('opnames', 'layout'));
     }
 
     public function create()
     {
         $medicines = Medicine::orderBy('name')->get();
-        return view('admin.stock-opname.create', compact('medicines'));
+        $layout = getLayoutName();
+        return view('admin.stock-opname.create', compact('medicines', 'layout'));
     }
 
     public function getMedicineBatch(Request $request)
@@ -131,7 +133,8 @@ class StockOpnameController extends Controller
                 ? 'Stok opname berhasil disimpan sebagai draft!' 
                 : 'Stok opname berhasil dibuat!';
 
-            return redirect()->route('admin.stock-opname.index')
+            $prefix = getRoutePrefix();
+            return redirect()->route($prefix . '.stock-opname.index')
                 ->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -144,14 +147,16 @@ class StockOpnameController extends Controller
     public function show(StockOpname $stockOpname)
     {
         $stockOpname->load(['user', 'approver', 'details.medicine']);
-        return view('admin.stock-opname.show', compact('stockOpname'));
+        $layout = getLayoutName();
+        return view('admin.stock-opname.show', compact('stockOpname', 'layout'));
     }
 
     public function edit(StockOpname $stockOpname)
     {
         $stockOpname->load('details.medicine');
         $medicines = Medicine::orderBy('name')->get();
-        return view('admin.stock-opname.edit', compact('stockOpname', 'medicines'));
+        $layout = getLayoutName();
+        return view('admin.stock-opname.edit', compact('stockOpname', 'medicines', 'layout'));
     }
 
     public function update(Request $request, StockOpname $stockOpname)
@@ -224,7 +229,8 @@ class StockOpnameController extends Controller
                 $message .= ' Status approval telah direset. Silakan approve ulang setelah update.';
             }
 
-            return redirect()->route('admin.stock-opname.index')
+            $prefix = getRoutePrefix();
+            return redirect()->route($prefix . '.stock-opname.index')
                 ->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -237,20 +243,23 @@ class StockOpnameController extends Controller
     public function destroy(StockOpname $stockOpname)
     {
         if ($stockOpname->isApproved()) {
-            return redirect()->route('admin.stock-opname.index')
+            $prefix = getRoutePrefix();
+            return redirect()->route($prefix . '.stock-opname.index')
                 ->with('error', 'Tidak dapat menghapus opname yang sudah disetujui!');
         }
 
         $stockOpname->delete();
 
-        return redirect()->route('admin.stock-opname.index')
+        $prefix = getRoutePrefix();
+        return redirect()->route($prefix . '.stock-opname.index')
             ->with('success', 'Stok opname berhasil dihapus!');
     }
 
     public function approve(StockOpname $stockOpname)
     {
         if ($stockOpname->isApproved()) {
-            return redirect()->route('admin.stock-opname.show', $stockOpname)
+            $prefix = getRoutePrefix();
+            return redirect()->route($prefix . '.stock-opname.show', $stockOpname)
                 ->with('error', 'Opname ini sudah disetujui sebelumnya!');
         }
 
@@ -276,7 +285,8 @@ class StockOpnameController extends Controller
 
             DB::commit();
 
-            return redirect()->route('admin.stock-opname.show', $stockOpname)
+            $prefix = getRoutePrefix();
+            return redirect()->route($prefix . '.stock-opname.show', $stockOpname)
                 ->with('success', 'Stok opname berhasil disetujui dan stok telah disesuaikan!');
         } catch (\Exception $e) {
             DB::rollBack();
