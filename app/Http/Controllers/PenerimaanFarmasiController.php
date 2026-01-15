@@ -21,7 +21,20 @@ class PenerimaanFarmasiController extends Controller
             ->pluck('supplier_name')
             ->toArray();
         
-        return view('admin.penerimaan-farmasi.create', compact('suppliers'));
+        // Generate nomor urut otomatis per bulan
+        $nextNoUrut = PenerimaanBarang::generateNoUrut();
+        
+        return view('admin.penerimaan-farmasi.create', compact('suppliers', 'nextNoUrut'));
+    }
+
+    public function getNoUrut(Request $request)
+    {
+        $date = $request->input('date', date('Y-m-d'));
+        $noUrut = PenerimaanBarang::generateNoUrut($date);
+        
+        return response()->json([
+            'no_urut' => $noUrut
+        ]);
     }
 
     public function store(Request $request)
@@ -38,6 +51,7 @@ class PenerimaanFarmasiController extends Controller
             'no_urut' => 'nullable|string|max:255',
             'details' => 'required|array|min:1',
             'details.*.medicine_name' => 'required|string|max:255',
+            'details.*.product_code' => 'nullable|string|max:255',
             'details.*.unit_kemasan' => 'nullable|string|max:255',
             'details.*.no_batch' => 'nullable|string|max:255',
             'details.*.expired_date' => 'nullable|date',
@@ -48,19 +62,16 @@ class PenerimaanFarmasiController extends Controller
             'details.*.description' => 'nullable|string',
             'details.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'details.*.discount_amount' => 'nullable|numeric|min:0',
-            'discount_percent' => 'nullable|numeric|min:0|max:100',
-            'discount_amount' => 'nullable|numeric|min:0',
+            'details.*.margin_percent' => 'nullable|numeric|min:0',
+            'details.*.selling_price' => 'nullable|numeric|min:0',
             'ppn_percent' => 'nullable|numeric|min:0|max:100',
             'ppn_amount' => 'nullable|numeric|min:0',
-            'materai' => 'nullable|numeric|min:0',
-            'extra_discount_percent' => 'nullable|numeric|min:0|max:100',
-            'extra_discount_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string'
         ]);
 
         DB::beginTransaction();
         try {
-            // Hitung total dari detail items (untuk grand total)
+            // Hitung total dari detail items (setelah diskon per item)
             $subtotal = 0;
             $totalQuantity = 0;
             foreach ($validated['details'] as $detail) {
@@ -71,31 +82,17 @@ class PenerimaanFarmasiController extends Controller
                 $totalQuantity += $detail['quantity'];
             }
 
-            // Hitung diskon global
-            // Jika discount_amount diisi manual (> 0), pakai itu. Jika tidak, hitung dari percent
-            $discountAmount = 0;
-            if (isset($validated['discount_amount']) && $validated['discount_amount'] > 0) {
-                $discountAmount = $validated['discount_amount'];
-            } elseif (isset($validated['discount_percent']) && $validated['discount_percent'] > 0) {
-                $discountAmount = $subtotal * $validated['discount_percent'] / 100;
-            }
-            $totalAfterDiscount = $subtotal - $discountAmount;
-
-            // Hitung PPN (otomatis 11%) dari total setelah diskon global
+            // Hitung PPN (otomatis 11%) dari subtotal
             $ppnPercent = 11; // PPN selalu 11%
-            $ppnAmount = $totalAfterDiscount * $ppnPercent / 100;
-            $totalAfterPPN = $totalAfterDiscount + $ppnAmount;
+            $ppnAmount = $subtotal * $ppnPercent / 100;
+            $grandTotal = $subtotal + $ppnAmount;
 
-            // Hitung extra diskon
-            // Jika extra_discount_amount diisi manual (> 0), pakai itu. Jika tidak, hitung dari percent
-            $extraDiscountAmount = 0;
-            if (isset($validated['extra_discount_amount']) && $validated['extra_discount_amount'] > 0) {
-                $extraDiscountAmount = $validated['extra_discount_amount'];
-            } elseif (isset($validated['extra_discount_percent']) && $validated['extra_discount_percent'] > 0) {
-                $extraDiscountAmount = $totalAfterPPN * $validated['extra_discount_percent'] / 100;
+            // Generate nomor urut otomatis jika belum ada
+            $noUrut = $validated['no_urut'] ?? null;
+            if (!$noUrut || empty($noUrut)) {
+                $noUrut = PenerimaanBarang::generateNoUrut($validated['receipt_date']);
             }
-            $grandTotal = $totalAfterPPN - $extraDiscountAmount + ($validated['materai'] ?? 0);
-
+            
             // Buat penerimaan barang
             $penerimaanBarang = PenerimaanBarang::create([
                 'receipt_code' => PenerimaanBarang::generateCode(),
@@ -107,15 +104,12 @@ class PenerimaanFarmasiController extends Controller
                 'jenis_pembayaran' => $validated['jenis_pembayaran'],
                 'jatuh_tempo' => $validated['jatuh_tempo'] ?? null,
                 'diterima_semua' => $validated['diterima_semua'] ?? null,
-                'no_urut' => $validated['no_urut'] ?? null,
+                'no_urut' => $noUrut,
                 'total' => $subtotal,
-                'discount_percent' => $validated['discount_percent'] ?? 0,
-                'discount_amount' => $discountAmount,
+                'discount_percent' => 0,
+                'discount_amount' => 0,
                 'ppn_percent' => 11, // PPN selalu 11%
                 'ppn_amount' => $ppnAmount,
-                'materai' => $validated['materai'] ?? 0,
-                'extra_discount_percent' => $validated['extra_discount_percent'] ?? 0,
-                'extra_discount_amount' => $extraDiscountAmount,
                 'grand_total' => $grandTotal,
                 'user_id' => auth()->id(),
                 'notes' => $validated['notes'] ?? null
@@ -126,6 +120,7 @@ class PenerimaanFarmasiController extends Controller
                 // Validasi isi_per_box jika kemasan = box
                 $unitKemasan = $detail['unit_kemasan'] ?? $detail['unit_jual'];
                 if ($unitKemasan === 'box' && (!isset($detail['isi_per_box']) || $detail['isi_per_box'] <= 0)) {
+                    DB::rollBack();
                     return redirect()->back()
                         ->withInput()
                         ->with('error', 'Isi per box harus diisi jika kemasan adalah box!');
@@ -140,8 +135,8 @@ class PenerimaanFarmasiController extends Controller
                 $itemSubtotalAfterDiscount = $itemSubtotal - $itemDiscount;
                 
                 // 3. Hitung PPN per item secara proporsional
-                // PPN per item = (subtotal item setelah diskon / total setelah diskon) × PPN total
-                $ppnPerItem = $totalAfterDiscount > 0 ? ($itemSubtotalAfterDiscount / $totalAfterDiscount) * $ppnAmount : 0;
+                // PPN per item = (subtotal item setelah diskon / subtotal) × PPN total
+                $ppnPerItem = $subtotal > 0 ? ($itemSubtotalAfterDiscount / $subtotal) * $ppnAmount : 0;
                 
                 // 4. Hitung subtotal per item dengan PPN (ini yang disimpan)
                 $itemSubtotalWithPPN = $itemSubtotalAfterDiscount + $ppnPerItem;
@@ -174,16 +169,32 @@ class PenerimaanFarmasiController extends Controller
                     $stockToAdd = $detail['quantity'];
                 }
                 
+                // Ambil harga jual dari input (sudah termasuk margin)
+                // Jika tidak ada, hitung dari margin
+                if (isset($detail['selling_price']) && $detail['selling_price'] > 0) {
+                    $sellingPrice = $detail['selling_price'];
+                } else {
+                    // Hitung dari margin jika selling_price tidak ada
+                    $marginPercent = $detail['margin_percent'] ?? 0;
+                    $sellingPrice = $priceWithPPN * (1 + $marginPercent / 100);
+                }
+                
                 // Cek apakah obat sudah ada (case-insensitive)
                 $medicine = Medicine::whereRaw('LOWER(name) = ?', [strtolower($detail['medicine_name'])])->first();
                 
-                // Jika belum ada, buat obat baru dengan harga jual (setelah diskon + PPN)
+                // Jika belum ada, buat obat baru dengan harga jual (setelah margin)
                 if (!$medicine) {
+                    // Gunakan kode produk dari form jika ada, atau generate baru
+                    $productCode = $detail['product_code'] ?? null;
+                    if (!$productCode || empty($productCode)) {
+                        $productCode = 'MED' . strtoupper(Str::random(6));
+                    }
+                    
                     $medicine = Medicine::create([
                         'name' => $detail['medicine_name'],
-                        'code' => 'MED' . strtoupper(Str::random(6)),
+                        'code' => $productCode,
                         'description' => $detail['description'] ?? null,
-                        'price' => $priceWithPPN, // Harga jual per unit jual (setelah diskon + PPN)
+                        'price' => $sellingPrice, // Harga jual per unit jual (setelah margin)
                         'stock' => 0, // Akan ditambah di bawah
                         'unit' => $detail['unit_jual'], // Unit jual (strip/tablet/ml/dll)
                         'expired_date' => $detail['expired_date'] ?? null
@@ -193,8 +204,7 @@ class PenerimaanFarmasiController extends Controller
                     if ($medicine->unit !== $detail['unit_jual']) {
                         $medicine->update(['unit' => $detail['unit_jual']]);
                     }
-                    // Update harga jual jika berbeda (harga setelah diskon + PPN)
-                    // $medicine->update(['price' => $priceWithPPN]);
+                    // Harga jual akan diupdate setelah detail disimpan dengan weighted average
                 }
 
                 PenerimaanBarangDetail::create([
@@ -206,14 +216,47 @@ class PenerimaanFarmasiController extends Controller
                     'no_batch' => $detail['no_batch'] ?? null,
                     'expired_date' => $detail['expired_date'] ?? null,
                     'quantity' => $detail['quantity'],
-                    'price' => $priceWithPPN, // Harga jual per unit jual (setelah diskon + PPN)
+                    'price' => $priceWithPPN, // Harga beli per unit jual (setelah diskon + PPN, sebelum margin)
                     'discount_percent' => $detail['discount_percent'] ?? 0,
                     'discount_amount' => $itemDiscount,
+                    'margin_percent' => $detail['margin_percent'] ?? 0,
+                    'selling_price' => $sellingPrice, // Harga jual per unit jual (setelah margin)
                     'subtotal' => $itemSubtotalWithPPN // Subtotal = subtotal setelah diskon + PPN per item
                 ]);
 
                 // Update stok obat (tambah stok dalam unit jual)
                 $medicine->addStock($stockToAdd);
+                
+                // Update harga jual dengan weighted average dari semua batch (termasuk yang baru saja disimpan)
+                // Ini memastikan medicines.price tidak hanya mengikuti batch terakhir
+                // Hanya hitung dari batch yang punya selling_price (abaikan NULL untuk batch lama)
+                if ($medicine) {
+                    $pembelianData = DB::table('penerimaan_barang_details')
+                        ->where('medicine_id', $medicine->id)
+                        ->whereNotNull('selling_price')
+                        ->where('selling_price', '>', 0)
+                        ->selectRaw('
+                            SUM(selling_price * 
+                                CASE 
+                                    WHEN unit_kemasan = "box" AND isi_per_box > 0 
+                                    THEN quantity * isi_per_box
+                                    ELSE quantity 
+                                END
+                            ) as total_selling_price_weighted,
+                            SUM(CASE 
+                                WHEN unit_kemasan = "box" AND isi_per_box > 0 
+                                THEN quantity * isi_per_box
+                                ELSE quantity 
+                            END) as total_qty_unit_jual
+                        ')
+                        ->first();
+                    
+                    if ($pembelianData && $pembelianData->total_qty_unit_jual > 0) {
+                        // Weighted average selling price
+                        $avgSellingPrice = $pembelianData->total_selling_price_weighted / $pembelianData->total_qty_unit_jual;
+                        $medicine->update(['price' => round($avgSellingPrice, 2)]);
+                    }
+                }
             }
 
             DB::commit();

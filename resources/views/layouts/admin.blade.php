@@ -53,6 +53,18 @@
                     <span>Riwayat Transaksi</span>
                 </a>
                 @if(auth()->check() && auth()->user()->role === 'admin')
+                <a href="{{ route('admin.report.monthly') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.report.monthly') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-chart-bar mr-3"></i>
+                    <span>Laporan Bulanan</span>
+                </a>
+                <a href="{{ route('admin.report.rekapan-pembelian-obat') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.report.rekapan-pembelian-obat') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-shopping-cart mr-3"></i>
+                    <span>Rekapan Pembelian Obat</span>
+                </a>
+                <a href="{{ route('admin.report.laba-rugi') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.report.laba-rugi') ? 'bg-white bg-opacity-20' : '' }}">
+                    <i class="fas fa-chart-line mr-3"></i>
+                    <span>Laporan Laba Rugi</span>
+                </a>
                 <a href="{{ route('admin.karyawan.index') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('admin.karyawan.*') ? 'bg-white bg-opacity-20' : '' }}">
                     <i class="fas fa-users mr-3"></i>
                     <span>Master Karyawan</span>

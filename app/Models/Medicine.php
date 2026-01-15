@@ -34,12 +34,24 @@ class Medicine extends Model
 
     public function reduceStock($quantity)
     {
+        if ($quantity < 0) {
+            throw new \InvalidArgumentException('Quantity tidak boleh negatif');
+        }
+        
+        if ($this->stock < $quantity) {
+            throw new \Exception("Stok tidak mencukupi. Stok tersedia: {$this->stock}, dibutuhkan: {$quantity}");
+        }
+        
         $this->stock -= $quantity;
         $this->save();
     }
 
     public function addStock($quantity)
     {
+        if ($quantity < 0) {
+            throw new \InvalidArgumentException('Quantity tidak boleh negatif');
+        }
+        
         $this->stock += $quantity;
         $this->save();
     }

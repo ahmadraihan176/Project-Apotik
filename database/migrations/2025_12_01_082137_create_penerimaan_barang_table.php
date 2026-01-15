@@ -28,9 +28,6 @@ return new class extends Migration
             $table->decimal('discount_amount', 15, 2)->default(0);
             $table->decimal('ppn_percent', 5, 2)->default(0);
             $table->decimal('ppn_amount', 15, 2)->default(0);
-            $table->decimal('materai', 15, 2)->default(0);
-            $table->decimal('extra_discount_percent', 5, 2)->default(0);
-            $table->decimal('extra_discount_amount', 15, 2)->default(0);
             $table->decimal('grand_total', 15, 2)->default(0);
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('notes')->nullable();

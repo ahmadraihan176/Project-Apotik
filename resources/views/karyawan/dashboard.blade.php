@@ -45,11 +45,13 @@
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-500 text-sm">Pendapatan Hari Ini</p>
-                <p class="text-3xl font-bold text-orange-600">Rp {{ number_format($todayRevenue, 0, ',', '.') }}</p>
+                <p class="text-gray-500 text-sm">Keuntungan Hari Ini</p>
+                <p class="text-3xl font-bold {{ $todayProfit >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                    {{ $todayProfit >= 0 ? '+' : '' }}Rp {{ number_format(abs($todayProfit), 0, ',', '.') }}
+                </p>
             </div>
-            <div class="bg-orange-100 p-4 rounded-full">
-                <i class="fas fa-money-bill-wave text-2xl text-orange-600"></i>
+            <div class="p-4 rounded-full {{ $todayProfit >= 0 ? 'bg-green-100' : 'bg-red-100' }}">
+                <i class="fas fa-chart-line text-2xl {{ $todayProfit >= 0 ? 'text-green-600' : 'text-red-600' }}"></i>
             </div>
         </div>
     </div>

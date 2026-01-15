@@ -48,31 +48,36 @@ class PresensiController extends Controller
             abort(403, 'Akses ditolak. Hanya admin yang dapat mengakses halaman ini.');
         }
 
-        // Ambil bulan dan tahun dari request
-        // Default: Desember 2025 jika sekarang sebelum Desember 2025, atau bulan/tahun sekarang
+        // Ambil bulan dan tahun dari request, default bulan dan tahun sekarang
         $tahunSekarang = now()->year;
         $bulanSekarang = now()->month;
         
-        // Jika tahun sekarang < 2025, atau tahun 2025 tapi bulan < 12, default ke Desember 2025
-        if ($tahunSekarang < 2025 || ($tahunSekarang == 2025 && $bulanSekarang < 12)) {
-            $defaultBulan = 12;
-            $defaultTahun = 2025;
-        } else {
-            $defaultBulan = $bulanSekarang;
-            $defaultTahun = $tahunSekarang;
-        }
+        // Cari tahun pertama dari data presensi
+        $tahunPertamaPresensi = Presensi::selectRaw('YEAR(MIN(tanggal)) as year')
+            ->value('year');
+        
+        // Tahun minimal adalah 2026 atau tahun pertama presensi (jika lebih besar dari 2026)
+        $tahunMinimal = max(2026, $tahunPertamaPresensi ?: 2026);
+        
+        $defaultBulan = $bulanSekarang;
+        $defaultTahun = $tahunSekarang;
 
         $bulan = $request->input('bulan', $defaultBulan);
         $tahun = $request->input('tahun', $defaultTahun);
         
-        // Validasi: tahun minimal 2025
-        if ($tahun < 2025) {
-            $tahun = 2025;
+        // Validasi: tahun minimal 2026
+        if ($tahun < 2026) {
+            $tahun = 2026;
         }
         
-        // Validasi: jika tahun 2025, bulan minimal 12 (Desember)
-        if ($tahun == 2025 && $bulan < 12) {
-            $bulan = 12;
+        // Jika tahun 2026, pastikan bulan minimal Januari
+        if ($tahun == 2026 && $bulan < 1) {
+            $bulan = 1;
+        }
+        
+        // Validasi bulan
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = $bulanSekarang;
         }
 
         // Ambil semua karyawan yang punya NIK
@@ -106,8 +111,26 @@ class PresensiController extends Controller
         usort($rekapan, function($a, $b) {
             return $b['total_hadir'] <=> $a['total_hadir'];
         });
+        
+        // Data untuk dropdown tahun (dinamis)
+        $years = getAvailableYears();
 
-        return view('admin.presensi.rekapan', compact('rekapan', 'bulan', 'tahun'));
+        // Tahun minimal adalah 2026
+        $tahunPertamaPresensi = max(2026, Presensi::selectRaw('YEAR(MIN(tanggal)) as year')
+            ->value('year') ?: 2026);
+        
+        // Cari bulan pertama presensi pada tahun pertama (jika tahun 2026, mulai dari Januari)
+        if ($tahunPertamaPresensi == 2026) {
+            $bulanPertamaPresensi = Presensi::whereYear('tanggal', 2026)
+                ->selectRaw('MONTH(MIN(tanggal)) as month')
+                ->value('month') ?: 1;
+        } else {
+            $bulanPertamaPresensi = Presensi::whereYear('tanggal', $tahunPertamaPresensi)
+                ->selectRaw('MONTH(MIN(tanggal)) as month')
+                ->value('month') ?: 1;
+        }
+        
+        return view('admin.presensi.rekapan', compact('rekapan', 'bulan', 'tahun', 'years', 'tahunPertamaPresensi', 'bulanPertamaPresensi'));
     }
 
     public function store(Request $request)

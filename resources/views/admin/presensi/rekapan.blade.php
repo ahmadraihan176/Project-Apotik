@@ -15,7 +15,9 @@
                 <select name="bulan" id="bulanSelect" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
                     @php
                         $tahunDipilih = $tahun;
-                        $bulanMulai = ($tahunDipilih == 2025) ? 12 : 1;
+                        // Jika tahun sama dengan tahun pertama presensi, mulai dari bulan pertama presensi
+                        // Jika tidak, mulai dari Januari
+                        $bulanMulai = ($tahunDipilih == $tahunPertamaPresensi) ? $bulanPertamaPresensi : 1;
                     @endphp
                     @for($i = $bulanMulai; $i <= 12; $i++)
                         <option value="{{ $i }}" {{ $bulan == $i ? 'selected' : '' }}>
@@ -24,9 +26,9 @@
                     @endfor
                 </select>
                 <select name="tahun" id="tahunSelect" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
-                    @for($i = now()->year; $i >= 2025; $i--)
-                        <option value="{{ $i }}" {{ $tahun == $i ? 'selected' : '' }}>{{ $i }}</option>
-                    @endfor
+                    @foreach($years as $y)
+                        <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
                 </select>
                 <button type="submit" class="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700">
                     <i class="fas fa-search mr-2"></i>Cari
@@ -171,9 +173,11 @@
         // Hapus semua opsi bulan
         bulanSelect.innerHTML = '';
         
-        // Jika tahun 2025, mulai dari Desember (12)
-        // Jika tahun > 2025, mulai dari Januari (1)
-        const bulanMulai = (tahunDipilih == 2025) ? 12 : 1;
+        // Jika tahun sama dengan tahun pertama presensi, mulai dari bulan pertama presensi
+        // Jika tidak, mulai dari Januari (1)
+        const tahunPertamaPresensi = {{ $tahunPertamaPresensi }};
+        const bulanPertamaPresensi = {{ $bulanPertamaPresensi }};
+        const bulanMulai = (tahunDipilih == tahunPertamaPresensi) ? bulanPertamaPresensi : 1;
         
         // Buat opsi bulan
         const namaBulan = [

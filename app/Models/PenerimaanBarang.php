@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PenerimaanBarang extends Model
 {
-    use HasFactory;
 
     protected $table = 'penerimaan_barang';
 
@@ -31,9 +29,6 @@ class PenerimaanBarang extends Model
         'discount_amount',
         'ppn_percent',
         'ppn_amount',
-        'materai',
-        'extra_discount_percent',
-        'extra_discount_amount',
         'grand_total',
         'user_id',
         'notes'
@@ -48,9 +43,6 @@ class PenerimaanBarang extends Model
         'discount_amount' => 'decimal:2',
         'ppn_percent' => 'decimal:2',
         'ppn_amount' => 'decimal:2',
-        'materai' => 'decimal:2',
-        'extra_discount_percent' => 'decimal:2',
-        'extra_discount_amount' => 'decimal:2',
         'grand_total' => 'decimal:2'
     ];
 
@@ -81,5 +73,30 @@ class PenerimaanBarang extends Model
         
         $nextNumber = $maxNumber + 1;
         return 'RCV-' . $date . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+    }
+
+    public static function generateNoUrut($receiptDate = null)
+    {
+        $date = $receiptDate ? \Carbon\Carbon::parse($receiptDate) : now();
+        $month = $date->month;
+        $year = $date->year;
+        
+        // Ambil nomor urut terakhir di bulan dan tahun yang sama
+        $lastPenerimaan = self::whereYear('receipt_date', $year)
+            ->whereMonth('receipt_date', $month)
+            ->whereNotNull('no_urut')
+            ->orderBy('id', 'desc')
+            ->first();
+        
+        $nextNumber = 1;
+        
+        if ($lastPenerimaan && $lastPenerimaan->no_urut) {
+            // Parse nomor urut terakhir (format: 001/2026)
+            if (preg_match('/^(\d+)\/' . $year . '$/', $lastPenerimaan->no_urut, $matches)) {
+                $nextNumber = (int)$matches[1] + 1;
+            }
+        }
+        
+        return str_pad($nextNumber, 3, '0', STR_PAD_LEFT) . '/' . $year;
     }
 }

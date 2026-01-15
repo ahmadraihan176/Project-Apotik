@@ -2,13 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PenerimaanBarangDetail extends Model
 {
-    use HasFactory;
 
     protected $table = 'penerimaan_barang_details';
 
@@ -24,6 +22,8 @@ class PenerimaanBarangDetail extends Model
         'price',
         'discount_percent',
         'discount_amount',
+        'margin_percent',
+        'selling_price',
         'subtotal'
     ];
 
@@ -32,6 +32,8 @@ class PenerimaanBarangDetail extends Model
         'price' => 'decimal:2',
         'discount_percent' => 'decimal:2',
         'discount_amount' => 'decimal:2',
+        'margin_percent' => 'decimal:2',
+        'selling_price' => 'decimal:2',
         'subtotal' => 'decimal:2'
     ];
 
