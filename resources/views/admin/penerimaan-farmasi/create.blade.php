@@ -17,8 +17,9 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Tanggal *</label>
-                    <input type="date" name="receipt_date" value="{{ old('receipt_date', date('Y-m-d')) }}" required
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 @error('receipt_date') border-red-500 @enderror">
+                    <input type="date" name="receipt_date" id="receipt_date_input" value="{{ old('receipt_date', date('Y-m-d')) }}" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 @error('receipt_date') border-red-500 @enderror"
+                        onchange="updateNoUrut()">
                     @error('receipt_date')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
@@ -85,9 +86,10 @@
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">No. Urut</label>
-                    <input type="text" name="no_urut" value="{{ old('no_urut') }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        placeholder="Nomor urut">
+                    <input type="text" name="no_urut" id="no_urut_input" value="{{ old('no_urut', $nextNoUrut ?? '') }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-gray-50"
+                        placeholder="Nomor urut" readonly>
+                    <p class="text-xs text-gray-500 mt-1">Otomatis terisi per bulan</p>
                 </div>
             </div>
         </div>
@@ -99,21 +101,25 @@
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Kode Produk</label>
                     <input type="text" id="product_code_input" 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        placeholder="Kode produk">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-gray-50"
+                        placeholder="Kode produk akan terisi otomatis" readonly>
+                    <p class="text-xs text-gray-500 mt-1">Otomatis terisi saat input nama</p>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Nama Barang *</label>
                     <input type="text" id="medicine_name_input" 
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        placeholder="Nama obat">
+                        placeholder="Nama obat"
+                        onblur="generateProductCode()">
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Harga (Rp) *</label>
                     <input type="number" id="price_input" step="0.01" min="0"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                         placeholder="Harga per satuan pembelian"
-                        title="Harga per satuan pembelian (misal: per box, per strip)">
+                        title="Harga per satuan pembelian (misal: per box, per strip)"
+                        onchange="calculateSellingPrice()"
+                        onkeyup="calculateSellingPrice()">
                     <p class="text-xs text-gray-500 mt-1">Harga per satuan pembelian</p>
                 </div>
                 <div>
@@ -141,7 +147,7 @@
             <div class="grid grid-cols-3 gap-4 mb-4">
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Satuan Pembelian</label>
-                    <select id="unit_kemasan_select" onchange="toggleIsiPerBox()"
+                    <select id="unit_kemasan_select" onchange="toggleIsiPerBox(); calculateSellingPrice();"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                         title="Satuan saat membeli dari supplier (misal: box, strip, botol)">
                         <option value="">Pilih...</option>
@@ -157,7 +163,9 @@
                     <label class="block text-gray-700 font-semibold mb-2">Isi per Box *</label>
                     <input type="number" id="isi_per_box_input" min="1"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                        placeholder="Jumlah strip/tablet per box">
+                        placeholder="Jumlah strip/tablet per box"
+                        onchange="calculateSellingPrice()"
+                        onkeyup="calculateSellingPrice()">
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Deskripsi</label>
@@ -172,14 +180,6 @@
                     <input type="text" id="no_batch_input"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                         placeholder="Nomor batch">
-                    <div class="flex gap-4 mt-4">
-                        <button type="button" onclick="addItem()" class="flex-1 px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
-                            <i class="fas fa-plus mr-2"></i>Tambahkan
-                        </button>
-                        <button type="button" onclick="addItemAndContinue()" class="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
-                            <i class="fas fa-plus-circle mr-2"></i>Tambahkan & Lanjutkan
-                        </button>
-                    </div>
                 </div>
                 <div>
                     <label class="block text-gray-700 font-semibold mb-2">Expired Date</label>
@@ -192,6 +192,36 @@
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                         placeholder="0"
                         onchange="calculateItemDiscount()">
+                </div>
+            </div>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Margin (%) *</label>
+                    <input type="number" id="margin_percent_input" step="1" min="0" value="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        placeholder="0"
+                        onchange="calculateSellingPrice()"
+                        onkeyup="calculateSellingPrice()"
+                        oninput="calculateSellingPrice()">
+                    <p class="text-xs text-gray-500 mt-1">Persentase keuntungan</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">Harga Jual (Rp) *</label>
+                    <input type="number" id="selling_price_input" step="1" min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-gray-50"
+                        placeholder="Otomatis terhitung"
+                        readonly>
+                    <p class="text-xs text-gray-500 mt-1">Harga jual per unit jual (otomatis)</p>
+                </div>
+                <div class="flex items-end">
+                    <div class="flex gap-4 w-full">
+                        <button type="button" onclick="addItem(); return false;" class="flex-1 px-4 py-2 gradient-bg text-white rounded-lg hover:opacity-90">
+                            <i class="fas fa-plus mr-2"></i>Tambahkan
+                        </button>
+                        <button type="button" onclick="addItemAndContinue(); return false;" class="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
+                            <i class="fas fa-plus-circle mr-2"></i>Tambahkan & Lanjutkan
+                        </button>
+                    </div>
                 </div>
             </div>
             <p class="text-xs text-gray-500 italic">
@@ -217,6 +247,8 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HARGA @ (Pembelian)</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DISC %</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">DISC RP.</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">MARGIN %</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HARGA JUAL</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SUBTOTAL</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">AKSI</th>
                         </tr>
@@ -240,46 +272,25 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">TOTAL</h3>
                 <div class="space-y-3">
                     <div class="flex gap-2">
-                        <input type="number" name="discount_percent" id="discount_percent" step="0.01" min="0" max="100" value="{{ old('discount_percent', 0) }}"
-                            class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            onchange="calculateTotals()" placeholder="%">
-                        <input type="number" name="discount_amount" id="discount_amount" step="0.01" min="0" value="{{ old('discount_amount', 0) }}"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            onchange="calculateTotals()" placeholder="Rp">
-                        <label class="flex items-center text-gray-700 font-semibold">Diskon</label>
-                    </div>
-                    <div class="flex gap-2">
                         <input type="number" name="ppn_percent" id="ppn_percent" step="0.01" min="0" max="100" value="{{ old('ppn_percent', 11) }}"
                             class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                             onchange="calculateTotals()" placeholder="%" readonly>
-                        <input type="number" name="ppn_amount" id="ppn_amount" step="0.01" min="0" value="{{ old('ppn_amount', 0) }}"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            placeholder="Rp" readonly>
+                        <div id="ppn_amount_display" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-800 flex items-center">
+                            Rp 0
+                        </div>
+                        <input type="hidden" name="ppn_amount" id="ppn_amount" value="0">
                         <label class="flex items-center text-gray-700 font-semibold">PPN (11%)</label>
                     </div>
                     <div class="flex gap-2">
-                        <input type="number" name="materai" id="materai" step="0.01" min="0" value="{{ old('materai', 0) }}"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            onchange="calculateTotals()" placeholder="Rp">
-                        <label class="flex items-center text-gray-700 font-semibold">Materai</label>
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="number" id="total_before_discount" step="0.01" readonly
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" value="0">
+                        <div id="total_before_discount" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-800 flex items-center">
+                            Rp 0
+                        </div>
                         <label class="flex items-center text-gray-700 font-semibold">Total</label>
                     </div>
                     <div class="flex gap-2">
-                        <input type="number" name="extra_discount_percent" id="extra_discount_percent" step="0.01" min="0" max="100" value="{{ old('extra_discount_percent', 0) }}"
-                            class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            onchange="calculateTotals()" placeholder="%">
-                        <input type="number" name="extra_discount_amount" id="extra_discount_amount" step="0.01" min="0" value="{{ old('extra_discount_amount', 0) }}"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            onchange="calculateTotals()" placeholder="Rp">
-                        <label class="flex items-center text-gray-700 font-semibold">Extra Diskon</label>
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="number" id="grand_total" step="0.01" readonly
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-lg" value="0">
+                        <div id="grand_total" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 font-bold text-lg text-gray-800 flex items-center">
+                            Rp 0
+                        </div>
                         <label class="flex items-center text-gray-700 font-semibold">Grand Total</label>
                     </div>
                 </div>
@@ -302,6 +313,59 @@
 <script>
     let itemCount = 0;
     let items = [];
+    let generatedCodes = {}; // Simpan kode yang sudah di-generate untuk nama obat tertentu
+
+    // Generate kode produk otomatis saat input nama obat
+    function generateProductCode() {
+        const medicineNameInput = document.getElementById('medicine_name_input');
+        const productCodeInput = document.getElementById('product_code_input');
+        const medicineName = medicineNameInput.value.trim();
+        
+        if (!medicineName) {
+            productCodeInput.value = '';
+            return;
+        }
+        
+        // Jika sudah pernah generate untuk nama ini, gunakan kode yang sama
+        if (generatedCodes[medicineName.toLowerCase()]) {
+            productCodeInput.value = generatedCodes[medicineName.toLowerCase()];
+            return;
+        }
+        
+        // Generate kode baru: MED + 6 karakter random
+        const randomChars = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const newCode = 'MED' + randomChars;
+        
+        // Simpan kode untuk nama ini
+        generatedCodes[medicineName.toLowerCase()] = newCode;
+        productCodeInput.value = newCode;
+    }
+
+    // Update nomor urut saat tanggal berubah
+    function updateNoUrut() {
+        const receiptDateInput = document.getElementById('receipt_date_input');
+        const noUrutInput = document.getElementById('no_urut_input');
+        
+        if (receiptDateInput && receiptDateInput.value) {
+            // Request nomor urut dari server berdasarkan tanggal
+            fetch('{{ route($routePrefix . ".penerimaan-farmasi.get-no-urut") }}?date=' + receiptDateInput.value, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.no_urut) {
+                    noUrutInput.value = data.no_urut;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    }
 
     function toggleJatuhTempo() {
         const jenisPembayaran = document.getElementById('jenis_pembayaran').value;
@@ -343,6 +407,8 @@
         const noBatchInput = document.getElementById('no_batch_input');
         const expiredDateInput = document.getElementById('expired_date_input');
         const discountPercentInput = document.getElementById('discount_percent_input');
+        const marginPercentInput = document.getElementById('margin_percent_input');
+        const sellingPriceInput = document.getElementById('selling_price_input');
         const productCodeInput = document.getElementById('product_code_input');
         
         const medicineName = medicineNameInput.value.trim();
@@ -358,8 +424,36 @@
         
         // Hitung diskon dari persen
         const discountPercent = parseFloat(discountPercentInput.value) || 0;
+        let marginPercent = parseFloat(marginPercentInput.value) || 0;
+        let sellingPrice = parseFloat(sellingPriceInput.value) || 0;
         const itemSubtotal = price * quantity;
         const discountAmount = itemSubtotal * discountPercent / 100;
+        
+        // Pastikan margin dan selling_price terhitung dengan benar
+        // Hitung harga setelah diskon
+        const priceAfterDiscount = price - (price * discountPercent / 100);
+        
+        // Hitung PPN 11%
+        const ppnAmount = priceAfterDiscount * 0.11;
+        const priceWithPPN = priceAfterDiscount + ppnAmount;
+        
+        // Hitung harga jual dengan margin
+        const priceWithMargin = priceWithPPN * (1 + marginPercent / 100);
+        
+        // Jika kemasan = box dan ada isi per box, hitung harga per unit jual
+        if (unitKemasan === 'box' && isiPerBox && isiPerBox > 0) {
+            sellingPrice = priceWithMargin / isiPerBox;
+        } else {
+            sellingPrice = priceWithMargin;
+        }
+        
+        // Bulatkan ke bilangan bulat tanpa desimal
+        marginPercent = Math.round(marginPercent);
+        sellingPrice = Math.round(sellingPrice);
+        
+        // Update input field juga untuk memastikan konsistensi
+        marginPercentInput.value = marginPercent;
+        sellingPriceInput.value = sellingPrice;
 
         // Validasi
         if (!medicineName) {
@@ -382,8 +476,20 @@
             alert('Isi per box harus diisi jika kemasan adalah box!');
             return;
         }
+        if (!marginPercent || marginPercent <= 0) {
+            alert('Margin % harus diisi dan lebih dari 0!');
+            return;
+        }
+        if (!sellingPrice || sellingPrice <= 0) {
+            alert('Harga jual harus terhitung! Pastikan semua field sudah diisi dengan benar.');
+            return;
+        }
 
         itemCount++;
+        // Pastikan nilai margin dan selling_price sudah terhitung dengan benar
+        const finalMarginPercent = Math.round(marginPercent);
+        const finalSellingPrice = Math.round(sellingPrice);
+        
         const item = {
             id: itemCount,
             product_code: productCode,
@@ -396,6 +502,8 @@
             description: description,
             discount_percent: discountPercent,
             discount_amount: discountAmount,
+            margin_percent: finalMarginPercent,
+            selling_price: finalSellingPrice,
             no_batch: noBatch,
             expired_date: expiredDate
         };
@@ -415,13 +523,21 @@
         noBatchInput.value = '';
         expiredDateInput.value = '';
         discountPercentInput.value = 0;
+        marginPercentInput.value = 0;
+        sellingPriceInput.value = '';
         toggleIsiPerBox();
         
         // Focus ke nama barang untuk input berikutnya
         medicineNameInput.focus();
     }
 
-    function addItemAndContinue() {
+    function addItemAndContinue(event) {
+        // Prevent any form submission
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
         const medicineNameInput = document.getElementById('medicine_name_input');
         const priceInput = document.getElementById('price_input');
         const unitJualSelect = document.getElementById('unit_jual_select');
@@ -432,6 +548,8 @@
         const noBatchInput = document.getElementById('no_batch_input');
         const expiredDateInput = document.getElementById('expired_date_input');
         const discountPercentInput = document.getElementById('discount_percent_input');
+        const marginPercentInput = document.getElementById('margin_percent_input');
+        const sellingPriceInput = document.getElementById('selling_price_input');
         const productCodeInput = document.getElementById('product_code_input');
         
         const medicineName = medicineNameInput.value.trim();
@@ -447,8 +565,36 @@
         
         // Hitung diskon dari persen
         const discountPercent = parseFloat(discountPercentInput.value) || 0;
+        let marginPercent = parseFloat(marginPercentInput.value) || 0;
+        let sellingPrice = parseFloat(sellingPriceInput.value) || 0;
         const itemSubtotal = price * quantity;
         const discountAmount = itemSubtotal * discountPercent / 100;
+        
+        // Pastikan margin dan selling_price terhitung dengan benar
+        // Hitung harga setelah diskon
+        const priceAfterDiscount = price - (price * discountPercent / 100);
+        
+        // Hitung PPN 11%
+        const ppnAmount = priceAfterDiscount * 0.11;
+        const priceWithPPN = priceAfterDiscount + ppnAmount;
+        
+        // Hitung harga jual dengan margin
+        const priceWithMargin = priceWithPPN * (1 + marginPercent / 100);
+        
+        // Jika kemasan = box dan ada isi per box, hitung harga per unit jual
+        if (unitKemasan === 'box' && isiPerBox && isiPerBox > 0) {
+            sellingPrice = priceWithMargin / isiPerBox;
+        } else {
+            sellingPrice = priceWithMargin;
+        }
+        
+        // Bulatkan ke bilangan bulat tanpa desimal
+        marginPercent = Math.round(marginPercent);
+        sellingPrice = Math.round(sellingPrice);
+        
+        // Update input field juga untuk memastikan konsistensi
+        marginPercentInput.value = marginPercent;
+        sellingPriceInput.value = sellingPrice;
 
         // Validasi
         if (!medicineName) {
@@ -471,8 +617,20 @@
             alert('Isi per box harus diisi jika kemasan adalah box!');
             return;
         }
+        if (!marginPercent || marginPercent <= 0) {
+            alert('Margin % harus diisi dan lebih dari 0!');
+            return;
+        }
+        if (!sellingPrice || sellingPrice <= 0) {
+            alert('Harga jual harus terhitung! Pastikan semua field sudah diisi dengan benar.');
+            return;
+        }
 
         itemCount++;
+        // Pastikan nilai margin dan selling_price sudah terhitung dengan benar
+        const finalMarginPercent = Math.round(marginPercent);
+        const finalSellingPrice = Math.round(sellingPrice);
+        
         const item = {
             id: itemCount,
             product_code: productCode,
@@ -485,6 +643,8 @@
             description: description,
             discount_percent: discountPercent,
             discount_amount: discountAmount,
+            margin_percent: finalMarginPercent,
+            selling_price: finalSellingPrice,
             no_batch: noBatch,
             expired_date: expiredDate
         };
@@ -492,30 +652,159 @@
         items.push(item);
         renderItemsTable();
         
-        // Reset hanya field yang berubah (kode, nama, harga, jumlah, deskripsi, batch, expired, diskon)
-        // Pertahankan unit jual, satuan pembelian, dan isi per box
+        // Setelah menambahkan item, kosongkan field informasi umum untuk input faktur berikutnya
+        // Tanggal tetap diisi dengan tanggal hari ini (required)
+        const today = new Date().toISOString().split('T')[0];
+        document.querySelector('input[name="receipt_date"]').value = today;
+        
+        // Supplier dikosongkan
+        document.getElementById('supplier_name').value = '';
+        
+        // Jenis Penerimaan dikosongkan
+        document.querySelector('select[name="jenis_penerimaan"]').value = '';
+        
+        // No. SP dikosongkan
+        document.querySelector('input[name="no_sp"]').value = '';
+        
+        // No. Faktur dikosongkan
+        document.querySelector('input[name="no_faktur"]').value = '';
+        
+        // Jenis Pembayaran direset ke cash (required)
+        document.getElementById('jenis_pembayaran').value = 'cash';
+        
+        // Jatuh Tempo dikosongkan
+        document.querySelector('input[name="jatuh_tempo"]').value = '';
+        
+        // Diterima Semua dikosongkan
+        document.querySelector('select[name="diterima_semua"]').value = '';
+        
+        // No. Urut dikosongkan
+        document.querySelector('input[name="no_urut"]').value = '';
+        
+        // Catatan dikosongkan
+        document.querySelector('textarea[name="notes"]').value = '';
+        
+        // Update toggle jatuh tempo
+        toggleJatuhTempo();
+        
+        // Reset form input barang untuk input berikutnya (reset semua termasuk unit)
         productCodeInput.value = '';
+        generatedCodes = {}; // Reset generated codes
         medicineNameInput.value = '';
         priceInput.value = '';
+        unitJualSelect.value = '';
+        unitKemasanSelect.value = '';
+        isiPerBoxInput.value = '';
         quantityInput.value = 1;
         descriptionInput.value = '';
         noBatchInput.value = '';
         expiredDateInput.value = '';
         discountPercentInput.value = 0;
+        marginPercentInput.value = 0;
+        sellingPriceInput.value = '';
+        toggleIsiPerBox();
+        
+        // Reset kode produk setelah item ditambahkan
+        productCodeInput.value = '';
+        productCodeInput.readOnly = true;
         
         // Focus ke nama barang untuk input berikutnya
         medicineNameInput.focus();
+        
+        // Scroll ke bagian daftar barang untuk melihat item yang sudah ditambahkan
+        document.getElementById('itemsTable').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Pastikan tidak ada form submission
+        return false;
     }
 
     function calculateItemDiscount() {
         // Fungsi ini tetap ada untuk kompatibilitas, tapi tidak perlu melakukan apa-apa
         // karena diskon hanya dihitung dari persen saat addItem
+        calculateSellingPrice();
+    }
+
+    function calculateSellingPrice() {
+        const priceInput = document.getElementById('price_input');
+        const discountPercentInput = document.getElementById('discount_percent_input');
+        const marginPercentInput = document.getElementById('margin_percent_input');
+        const sellingPriceInput = document.getElementById('selling_price_input');
+        const unitKemasanSelect = document.getElementById('unit_kemasan_select');
+        const isiPerBoxInput = document.getElementById('isi_per_box_input');
+        const unitJualSelect = document.getElementById('unit_jual_select');
+        
+        const price = parseFloat(priceInput.value) || 0;
+        const discountPercent = parseFloat(discountPercentInput.value) || 0;
+        const marginPercent = parseFloat(marginPercentInput.value) || 0;
+        const unitKemasan = unitKemasanSelect.value;
+        const isiPerBox = unitKemasan === 'box' ? parseInt(isiPerBoxInput.value) || 0 : null;
+        const unitJual = unitJualSelect.value;
+        
+        if (!price || price <= 0) {
+            sellingPriceInput.value = '';
+            return;
+        }
+        
+        // Hitung harga setelah diskon
+        const priceAfterDiscount = price - (price * discountPercent / 100);
+        
+        // Hitung PPN 11%
+        const ppnAmount = priceAfterDiscount * 0.11;
+        const priceWithPPN = priceAfterDiscount + ppnAmount;
+        
+        // Hitung harga jual dengan margin
+        const priceWithMargin = priceWithPPN * (1 + marginPercent / 100);
+        
+        // Jika kemasan = box dan ada isi per box, hitung harga per unit jual
+        let sellingPrice = priceWithMargin;
+        if (unitKemasan === 'box' && isiPerBox && isiPerBox > 0) {
+            sellingPrice = priceWithMargin / isiPerBox;
+        }
+        
+        // Bulatkan ke bilangan bulat tanpa desimal
+        sellingPriceInput.value = Math.round(sellingPrice);
     }
 
     function removeItem(itemId) {
         items = items.filter(item => item.id !== itemId);
         renderItemsTable();
         calculateTotals();
+    }
+
+    function editItem(itemId) {
+        const item = items.find(i => i.id === itemId);
+        if (item) {
+            // Isi form dengan data item yang akan diedit
+            document.getElementById('product_code_input').value = item.product_code || '';
+            document.getElementById('product_code_input').readOnly = true; // Tetap readonly
+            document.getElementById('medicine_name_input').value = item.medicine_name || '';
+            // Generate kode jika belum ada
+            if (!item.product_code) {
+                generateProductCode();
+            }
+            document.getElementById('price_input').value = item.price || '';
+            document.getElementById('unit_jual_select').value = item.unit_jual || '';
+            document.getElementById('unit_kemasan_select').value = item.unit_kemasan || '';
+            document.getElementById('isi_per_box_input').value = item.isi_per_box || '';
+            document.getElementById('quantity_input').value = item.quantity || 1;
+            document.getElementById('description_input').value = item.description || '';
+            document.getElementById('no_batch_input').value = item.no_batch || '';
+            document.getElementById('expired_date_input').value = item.expired_date || '';
+            document.getElementById('discount_percent_input').value = item.discount_percent || 0;
+            document.getElementById('margin_percent_input').value = item.margin_percent || 0;
+            document.getElementById('selling_price_input').value = item.selling_price || 0;
+            
+            // Toggle isi per box jika perlu
+            toggleIsiPerBox();
+            
+            // Hapus item dari array (akan diganti dengan yang baru setelah di-edit)
+            items = items.filter(i => i.id !== itemId);
+            renderItemsTable();
+            
+            // Scroll ke form input
+            document.getElementById('product_code_input').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('medicine_name_input').focus();
+        }
     }
 
     function duplicateItem(itemId) {
@@ -534,6 +823,8 @@
                 description: item.description,
                 discount_percent: item.discount_percent,
                 discount_amount: item.discount_amount,
+                margin_percent: item.margin_percent,
+                selling_price: item.selling_price,
                 no_batch: item.no_batch,
                 expired_date: item.expired_date
             };
@@ -590,9 +881,22 @@
                     <input type="number" name="details[${item.id}][discount_amount]" value="${item.discount_amount}" step="0.01" min="0"
                         class="w-24 px-2 py-1 border border-gray-300 rounded" onchange="updateItemDiscount(${item.id}, 'amount', this.value)">
                 </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">
+                    <input type="number" name="details[${item.id}][margin_percent]" value="${Math.round(item.margin_percent || 0)}" step="1" min="0"
+                        class="w-20 px-2 py-1 border border-gray-300 rounded" 
+                        onchange="updateItemMargin(${item.id}, this.value)"
+                        onkeyup="updateItemMargin(${item.id}, this.value)">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm">
+                    <span class="text-gray-700 font-medium">Rp ${formatRupiah(item.selling_price || 0)}</span>
+                    <span class="text-xs text-gray-500">/${item.unit_jual || ''}</span>
+                </td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold">${formatCurrency(subtotal)}</td>
                 <td class="px-4 py-3 whitespace-nowrap text-sm">
                     <div class="flex gap-2">
+                        <button type="button" onclick="editItem(${item.id})" class="text-green-600 hover:text-green-800" title="Edit item">
+                            <i class="fas fa-edit"></i>
+                        </button>
                         <button type="button" onclick="duplicateItem(${item.id})" class="text-blue-600 hover:text-blue-800" title="Duplikat item">
                             <i class="fas fa-copy"></i>
                         </button>
@@ -604,8 +908,17 @@
                 <input type="hidden" name="details[${item.id}][medicine_name]" value="${item.medicine_name}">
                 <input type="hidden" name="details[${item.id}][product_code]" value="${item.product_code || ''}">
                 <input type="hidden" name="details[${item.id}][unit_jual]" value="${item.unit_jual}">
+                <input type="hidden" name="details[${item.id}][unit_kemasan]" value="${item.unit_kemasan || ''}">
                 <input type="hidden" name="details[${item.id}][isi_per_box]" value="${item.isi_per_box || ''}">
                 <input type="hidden" name="details[${item.id}][description]" value="${item.description || ''}">
+                <input type="hidden" name="details[${item.id}][no_batch]" value="${item.no_batch || ''}">
+                <input type="hidden" name="details[${item.id}][expired_date]" value="${item.expired_date || ''}">
+                <input type="hidden" name="details[${item.id}][quantity]" value="${item.quantity}">
+                <input type="hidden" name="details[${item.id}][price]" value="${item.price}">
+                <input type="hidden" name="details[${item.id}][discount_percent]" value="${item.discount_percent || 0}">
+                <input type="hidden" name="details[${item.id}][discount_amount]" value="${item.discount_amount || 0}">
+                <input type="hidden" name="details[${item.id}][margin_percent]" value="${Math.round(item.margin_percent || 0)}">
+                <input type="hidden" name="details[${item.id}][selling_price]" value="${Math.round(item.selling_price || 0)}">
             `;
             tbody.appendChild(row);
         });
@@ -633,6 +946,7 @@
         const item = items.find(i => i.id === itemId);
         if (item) {
             item.price = parseFloat(price) || 0;
+            recalculateItemSellingPrice(item);
             renderItemsTable();
         }
     }
@@ -648,67 +962,80 @@
                 const itemTotal = item.price * item.quantity;
                 item.discount_percent = itemTotal > 0 ? (item.discount_amount / itemTotal) * 100 : 0;
             }
+            // Recalculate selling price when discount changes
+            recalculateItemSellingPrice(item);
             renderItemsTable();
         }
     }
 
+    function updateItemMargin(itemId, value) {
+        const item = items.find(i => i.id === itemId);
+        if (item) {
+            // Pastikan margin bisa decimal
+            item.margin_percent = parseFloat(value) || 0;
+            // Recalculate harga jual saat margin berubah
+            recalculateItemSellingPrice(item);
+            renderItemsTable();
+        }
+    }
+
+    function recalculateItemSellingPrice(item) {
+        if (!item.price || item.price <= 0) return;
+        
+        // Hitung harga setelah diskon
+        const priceAfterDiscount = item.price - (item.price * (item.discount_percent || 0) / 100);
+        
+        // Hitung PPN 11%
+        const ppnAmount = priceAfterDiscount * 0.11;
+        const priceWithPPN = priceAfterDiscount + ppnAmount;
+        
+        // Hitung harga jual dengan margin
+        const marginPercent = item.margin_percent || 0;
+        const priceWithMargin = priceWithPPN * (1 + marginPercent / 100);
+        
+        // Jika kemasan = box dan ada isi per box, hitung harga per unit jual
+        let sellingPrice = priceWithMargin;
+        if (item.unit_kemasan === 'box' && item.isi_per_box && item.isi_per_box > 0) {
+            sellingPrice = priceWithMargin / item.isi_per_box;
+        }
+        
+        // Bulatkan ke bilangan bulat tanpa desimal
+        item.selling_price = Math.round(sellingPrice);
+    }
+
     function calculateTotals() {
-        // Hitung total dari items
+        // Hitung total dari items (setelah diskon per item)
         let subtotal = 0;
         items.forEach(item => {
             const itemSubtotal = (item.price * item.quantity) - item.discount_amount;
             subtotal += itemSubtotal;
         });
 
-        document.getElementById('total_before_discount').value = subtotal.toFixed(2);
+        // Tampilkan Total dengan format currency
+        document.getElementById('total_before_discount').textContent = formatCurrency(subtotal);
 
-        // Hitung diskon global
-        const discountPercent = parseFloat(document.getElementById('discount_percent').value) || 0;
-        const discountAmountInput = document.getElementById('discount_amount');
-        const discountAmountValue = parseFloat(discountAmountInput.value);
-        
-        // Jika discount_amount diisi manual, pakai itu. Jika tidak, hitung dari percent
-        let finalDiscount = 0;
-        if (discountAmountValue > 0 && discountAmountInput.value.trim() !== '') {
-            finalDiscount = discountAmountValue;
-        } else if (discountPercent > 0) {
-            finalDiscount = subtotal * discountPercent / 100;
-        }
-        discountAmountInput.value = finalDiscount.toFixed(2);
-        
-        let totalAfterDiscount = subtotal - finalDiscount;
-
-        // Hitung PPN (otomatis 11%)
+        // Hitung PPN (otomatis 11%) dari subtotal
         const ppnPercent = 11; // PPN selalu 11%
         const ppnAmountInput = document.getElementById('ppn_amount');
-        const finalPPN = totalAfterDiscount * ppnPercent / 100;
+        const ppnAmountDisplay = document.getElementById('ppn_amount_display');
+        const finalPPN = subtotal * ppnPercent / 100;
         ppnAmountInput.value = finalPPN.toFixed(2);
+        ppnAmountDisplay.textContent = formatCurrency(finalPPN);
         
-        let totalAfterPPN = totalAfterDiscount + finalPPN;
-
-        // Hitung extra diskon
-        const extraDiscountPercent = parseFloat(document.getElementById('extra_discount_percent').value) || 0;
-        const extraDiscountAmountInput = document.getElementById('extra_discount_amount');
-        const extraDiscountAmountValue = parseFloat(extraDiscountAmountInput.value);
-        
-        let finalExtraDiscount = 0;
-        if (extraDiscountAmountValue > 0 && extraDiscountAmountInput.value.trim() !== '') {
-            finalExtraDiscount = extraDiscountAmountValue;
-        } else if (extraDiscountPercent > 0) {
-            finalExtraDiscount = totalAfterPPN * extraDiscountPercent / 100;
-        }
-        extraDiscountAmountInput.value = finalExtraDiscount.toFixed(2);
-        
-        // Hitung materai
-        const materai = parseFloat(document.getElementById('materai').value) || 0;
-        
-        // Grand total
-        const grandTotal = totalAfterPPN - finalExtraDiscount + materai;
-        document.getElementById('grand_total').value = grandTotal.toFixed(2);
+        // Grand total = subtotal + PPN
+        const grandTotal = subtotal + finalPPN;
+        document.getElementById('grand_total').textContent = formatCurrency(grandTotal);
     }
 
     function formatCurrency(amount) {
         return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+    }
+
+    function formatRupiah(amount) {
+        if (!amount || amount === 0) return '0';
+        // Bulatkan dulu, lalu format dengan titik pemisah ribuan
+        const rounded = Math.round(parseFloat(amount));
+        return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
     // Initialize
@@ -771,46 +1098,29 @@
             }
         }
         
-        // Pastikan semua hidden input terisi dengan benar
-        items.forEach((item, index) => {
-            // Update hidden input untuk unit_jual
-            const hiddenUnitJual = document.querySelector(`input[name="details[${item.id}][unit_jual]"]`);
-            if (hiddenUnitJual) {
-                hiddenUnitJual.value = item.unit_jual || '';
-            } else {
-                // Jika tidak ada, buat hidden input baru
-                const form = document.getElementById('receiptForm');
-                const newInput = document.createElement('input');
-                newInput.type = 'hidden';
-                newInput.name = `details[${item.id}][unit_jual]`;
-                newInput.value = item.unit_jual || '';
-                form.appendChild(newInput);
-            }
+        // Pastikan semua hidden input terisi dengan benar dari array items
+        items.forEach((item) => {
+            // Update semua hidden input dengan nilai terbaru dari array items
+            const fields = [
+                'medicine_name', 'product_code', 'unit_jual', 'unit_kemasan', 
+                'isi_per_box', 'description', 'no_batch', 'expired_date',
+                'quantity', 'price', 'discount_percent', 'discount_amount'
+            ];
             
-            // Update hidden input untuk medicine_name
-            const hiddenMedicineName = document.querySelector(`input[name="details[${item.id}][medicine_name]"]`);
-            if (hiddenMedicineName) {
-                hiddenMedicineName.value = item.medicine_name || '';
-            } else {
-                const form = document.getElementById('receiptForm');
-                const newInput = document.createElement('input');
-                newInput.type = 'hidden';
-                newInput.name = `details[${item.id}][medicine_name]`;
-                newInput.value = item.medicine_name || '';
-                form.appendChild(newInput);
-            }
-            
-            // Update hidden input untuk isi_per_box
-            const hiddenIsiPerBox = document.querySelector(`input[name="details[${item.id}][isi_per_box]"]`);
-            if (hiddenIsiPerBox) {
-                hiddenIsiPerBox.value = item.isi_per_box || '';
-            }
-            
-            // Update hidden input untuk description
-            const hiddenDescription = document.querySelector(`input[name="details[${item.id}][description]"]`);
-            if (hiddenDescription) {
-                hiddenDescription.value = item.description || '';
-            }
+            fields.forEach(field => {
+                const hiddenInput = document.querySelector(`input[name="details[${item.id}][${field}]"]`);
+                if (hiddenInput) {
+                    if (field === 'quantity') {
+                        hiddenInput.value = item.quantity || 1;
+                    } else if (field === 'price') {
+                        hiddenInput.value = item.price || 0;
+                    } else if (field === 'discount_percent' || field === 'discount_amount') {
+                        hiddenInput.value = item[field] || 0;
+                    } else {
+                        hiddenInput.value = item[field] || '';
+                    }
+                }
+            });
         });
     });
 </script>

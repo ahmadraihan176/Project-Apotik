@@ -19,6 +19,15 @@ if (false) {
      * @return string
      */
     function getLayoutName(): string {}
+
+    /**
+     * Get available years for dropdown filters
+     * Returns years from 2026 to current year + 2 years ahead
+     * 
+     * @return array
+     */
+    function getAvailableYears(): array {}
 }
+
 
 

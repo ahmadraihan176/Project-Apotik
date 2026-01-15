@@ -107,6 +107,8 @@
     let lastScannedCode = null;
     let scanCount = 0;
     let scanConfirmation = null;
+    let messageTimeout = null;
+    let currentRequest = null; // Track current request to prevent duplicate
 
     // Initialize QuaggaJS Scanner
     function initScanner() {
@@ -225,12 +227,20 @@
                 length: nik.length
             });
             
-            // Stop scanner temporarily
-            Quagga.stop();
-            scannerActive = false;
+            // Jangan stop scanner, biarkan tetap aktif untuk scan berikutnya
+            // Hanya set flag scanning untuk prevent duplicate processing
+            // Quagga tetap berjalan di background
             
             // Process the scanned NIK
             processPresensi(nik);
+            
+            // Reset scanning flag setelah delay singkat untuk memungkinkan scan berikutnya
+            // Tapi tetap prevent duplicate dengan currentRequest check
+            setTimeout(() => {
+                if (scanning && !currentRequest) {
+                    scanning = false;
+                }
+            }, 500);
         });
 
         // Handle processing errors
@@ -259,8 +269,70 @@
         });
     }
 
+    // Function untuk show message dengan auto-hide
+    function showMessage(type, message, autoHide = true) {
+        // Clear previous timeout
+        if (messageTimeout) {
+            clearTimeout(messageTimeout);
+            messageTimeout = null;
+        }
+        
+        // Hide all messages first
+        document.getElementById('successMessage').classList.add('hidden');
+        document.getElementById('errorMessage').classList.add('hidden');
+        
+        // Show appropriate message
+        if (type === 'success') {
+            document.getElementById('successText').textContent = message;
+            document.getElementById('successMessage').classList.remove('hidden');
+        } else {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').classList.remove('hidden');
+        }
+        
+        // Auto-hide after 4 seconds
+        if (autoHide) {
+            messageTimeout = setTimeout(() => {
+                document.getElementById('successMessage').classList.add('hidden');
+                document.getElementById('errorMessage').classList.add('hidden');
+                messageTimeout = null;
+            }, 4000);
+        }
+        
+        // Scroll to top to show message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // Function untuk update status text
+    function updateStatus(text, type = 'info') {
+        const statusEl = document.getElementById('statusText');
+        if (!statusEl) return;
+        
+        statusEl.textContent = text;
+        statusEl.classList.remove('text-yellow-600', 'text-red-600', 'text-green-600', 'text-gray-600');
+        
+        switch(type) {
+            case 'processing':
+                statusEl.classList.add('text-yellow-600');
+                break;
+            case 'error':
+                statusEl.classList.add('text-red-600');
+                break;
+            case 'success':
+                statusEl.classList.add('text-green-600');
+                break;
+            default:
+                statusEl.classList.add('text-gray-600');
+        }
+    }
+
     // Process presensi
     function processPresensi(nik) {
+        // Prevent duplicate request
+        if (currentRequest) {
+            console.log('Request masih diproses, mengabaikan scan baru');
+            return;
+        }
         // Normalisasi NIK yang lebih ketat
         nik = String(nik).trim();
         // Hapus semua whitespace
@@ -283,16 +355,12 @@
         // Validasi NIK tidak kosong
         if (!nik || nik.length === 0) {
             console.error('NIK kosong setelah normalisasi');
-            document.getElementById('errorText').textContent = 'NIK tidak valid. Silakan coba lagi.';
-            document.getElementById('errorMessage').classList.remove('hidden');
-            setTimeout(() => {
-                resetScanner();
-            }, 2000);
+            showMessage('error', 'NIK tidak valid. Silakan coba lagi.');
+            resetScanner();
             return;
         }
         
-        document.getElementById('statusText').textContent = 'Memproses presensi...';
-        document.getElementById('statusText').classList.add('text-yellow-600');
+        updateStatus('Memproses presensi...', 'processing');
         
         // Hide previous messages
         document.getElementById('successMessage').classList.add('hidden');
@@ -303,15 +371,15 @@
         
         if (!token) {
             console.error('CSRF token tidak ditemukan');
-            document.getElementById('errorText').textContent = 'Token keamanan tidak ditemukan. Silakan refresh halaman.';
-            document.getElementById('errorMessage').classList.remove('hidden');
-            setTimeout(() => {
-                resetScanner();
-            }, 2000);
+            showMessage('error', 'Token keamanan tidak ditemukan. Silakan refresh halaman.');
+            resetScanner();
             return;
         }
         
         console.log('Sending NIK to server:', nik);
+        
+        // Set current request untuk prevent duplicate
+        currentRequest = { nik: nik, timestamp: Date.now() };
         
         fetch('{{ route("presensi.store") }}', {
             method: 'POST',
@@ -324,17 +392,13 @@
         })
         .then(response => response.json())
         .then(data => {
+            // Clear current request
+            currentRequest = null;
+            
             if (data.success) {
                 // Show success message
-                document.getElementById('successText').textContent = 
-                    `${data.message} - ${data.data.nama} (NIK: ${data.data.nik}) - Jam: ${data.data.jam_masuk}`;
-                document.getElementById('successMessage').classList.remove('hidden');
-                
-                // Stop scanner
-                if (scannerActive) {
-                    Quagga.stop();
-                    scannerActive = false;
-                }
+                const successMsg = `${data.message} - ${data.data.nama} (NIK: ${data.data.nik}) - Jam: ${data.data.jam_masuk}`;
+                showMessage('success', successMsg);
                 
                 // Show login button option
                 const loginButtonContainer = document.getElementById('loginButtonContainer');
@@ -342,38 +406,36 @@
                     loginButtonContainer.classList.remove('hidden');
                 }
                 
-                // Scroll to top to show success message
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                updateStatus('Presensi berhasil! Siap untuk scan berikutnya...', 'success');
                 
-                // Reset scanner after 3 seconds untuk presensi berikutnya
-                setTimeout(() => {
-                    resetScanner();
-                }, 3000);
+                // Reset scanner immediately untuk presensi berikutnya (tanpa delay)
+                // Scanner tetap aktif, hanya reset state untuk scan berikutnya
+                resetScanner();
             } else {
                 // Show error message
-                document.getElementById('errorText').textContent = data.message;
-                document.getElementById('errorMessage').classList.remove('hidden');
+                showMessage('error', data.message);
+                updateStatus('Presensi gagal. Siap untuk scan berikutnya...', 'error');
                 
                 console.error('Presensi error:', data);
                 
-                // Reset scanner after 3 seconds
-                setTimeout(() => {
-                    resetScanner();
-                }, 3000);
+                // Reset scanner immediately untuk scan berikutnya
+                resetScanner();
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('errorText').textContent = 'Terjadi kesalahan. Silakan coba lagi.';
-            document.getElementById('errorMessage').classList.remove('hidden');
+            // Clear current request
+            currentRequest = null;
             
-            setTimeout(() => {
-                resetScanner();
-            }, 2000);
+            console.error('Error:', error);
+            showMessage('error', 'Terjadi kesalahan. Silakan coba lagi.');
+            updateStatus('Terjadi kesalahan. Siap untuk scan berikutnya...', 'error');
+            
+            // Reset scanner immediately untuk scan berikutnya
+            resetScanner();
         });
     }
 
-    // Reset scanner
+    // Reset scanner state (scanner tetap aktif, hanya reset state)
     function resetScanner() {
         scanning = false;
         lastScannedCode = null;
@@ -382,11 +444,21 @@
             clearTimeout(scanConfirmation);
             scanConfirmation = null;
         }
+        
+        // Update status text hanya jika tidak ada request yang sedang diproses
+        if (!currentRequest) {
+            updateStatus('Arahkan kamera ke barcode/QR code', 'success');
+        }
+        
+        // Jika scanner tidak aktif, restart scanner
         if (!scannerActive) {
-            // Tunggu sebentar sebelum restart scanner
+            // Restart scanner dengan delay minimal
             setTimeout(function() {
-                initScanner();
-            }, 500);
+                // Double check scanner masih tidak aktif sebelum restart
+                if (!scannerActive) {
+                    initScanner();
+                }
+            }, 100);
         }
     }
 

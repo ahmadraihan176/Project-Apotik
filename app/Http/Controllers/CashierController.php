@@ -35,10 +35,12 @@ class CashierController extends Controller
             $items = [];
 
             // Validasi stok dan hitung total
+            // Gunakan lockForUpdate untuk mencegah race condition
             foreach ($request->items as $item) {
-                $medicine = Medicine::findOrFail($item['medicine_id']);
+                $medicine = Medicine::lockForUpdate()->findOrFail($item['medicine_id']);
                 
                 if ($medicine->stock < $item['quantity']) {
+                    DB::rollBack();
                     return back()->with('error', "Stok {$medicine->name} tidak mencukupi!");
                 }
 
@@ -60,14 +62,17 @@ class CashierController extends Controller
                 : ($validated['paid_amount'] ?? 0);
 
             if ($paymentMethod === 'qris' && !$paymentConfirmed) {
+                DB::rollBack();
                 return back()->with('error', 'Konfirmasi pembayaran QRIS wajib dicentang sebelum melanjutkan!');
             }
 
             if ($paymentMethod === 'cash' && $paidAmount < $totalAmount) {
+                DB::rollBack();
                 return back()->with('error', 'Jumlah pembayaran tunai kurang!');
             }
 
             if ($paymentMethod === 'cash' && !isset($validated['paid_amount'])) {
+                DB::rollBack();
                 return back()->with('error', 'Jumlah pembayaran tunai wajib diisi!');
             }
 
@@ -117,9 +122,24 @@ class CashierController extends Controller
         return view('admin.cashier.receipt', compact('transaction', 'layout'));
     }
 
-    public function history()
+    public function history(Request $request)
     {
+        // Ambil bulan dan tahun dari request, default bulan dan tahun sekarang
+        $month = $request->input('month', now()->month);
+        $year = $request->input('year', now()->year);
+
+        // Validasi bulan dan tahun
+        if ($month < 1 || $month > 12) {
+            $month = now()->month;
+        }
+        if ($year < 2000 || $year > 2100) {
+            $year = now()->year;
+        }
+
+        // Ambil transaksi berdasarkan bulan dan tahun yang dipilih
         $transactions = Transaction::with('details.medicine', 'user')
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
             ->latest()
             ->get();
         
@@ -127,8 +147,26 @@ class CashierController extends Controller
         $groupedTransactions = $transactions->groupBy(function($transaction) {
             return $transaction->created_at->format('Y-m-d');
         });
+
+        // Data untuk dropdown tahun (dinamis berdasarkan data transaksi)
+        $years = getAvailableYears();
+
+        $months = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
+        ];
         
         $layout = getLayoutName();
-        return view('admin.cashier.history', compact('groupedTransactions', 'layout'));
+        return view('admin.cashier.history', compact('groupedTransactions', 'month', 'year', 'months', 'years', 'layout'));
     }
 }

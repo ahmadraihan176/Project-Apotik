@@ -5,6 +5,32 @@
 
 @section('content')
 <div class="bg-white rounded-lg shadow-md p-6">
+    <!-- Filter Bulan dan Tahun -->
+    <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+        <form method="GET" action="{{ route(getRoutePrefix() . '.cashier.history') }}" id="filterForm" class="flex flex-wrap items-end gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <label for="month" class="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
+                <select name="month" id="month" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" onchange="document.getElementById('filterForm').submit()">
+                    @foreach($months as $monthNum => $monthName)
+                        <option value="{{ $monthNum }}" {{ $month == $monthNum ? 'selected' : '' }}>
+                            {{ $monthName }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label for="year" class="block text-sm font-medium text-gray-700 mb-2">Tahun</label>
+                <select name="year" id="year" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" onchange="document.getElementById('filterForm').submit()">
+                    @foreach($years as $yearOption)
+                        <option value="{{ $yearOption }}" {{ $year == $yearOption ? 'selected' : '' }}>
+                            {{ $yearOption }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        </form>
+    </div>
+
     @if($groupedTransactions->isEmpty())
         <div class="text-center py-12">
             <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>

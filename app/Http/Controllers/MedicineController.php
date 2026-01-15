@@ -4,71 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Medicine;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class MedicineController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
         // Load all medicines for real-time client-side search (like cashier)
         $medicines = Medicine::latest()->get();
         $layout = getLayoutName();
         
-        // Tentukan view layout berdasarkan role
-        $viewName = $layout === 'karyawan' ? 'admin.medicines.index' : 'admin.medicines.index';
-        
-        return view($viewName, compact('medicines', 'layout'));
+        return view('admin.medicines.index', compact('medicines', 'layout'));
     }
 
-    public function create()
-    {
-        $layout = getLayoutName();
-        return view('admin.medicines.create', compact('layout'));
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'unit' => 'required|string',
-            'expired_date' => 'nullable|date'
-        ]);
-
-        $validated['code'] = 'MED' . strtoupper(Str::random(6));
-
-        Medicine::create($validated);
-
-        $prefix = getRoutePrefix();
-        return redirect()->route($prefix . '.medicines.index')
-            ->with('success', 'Inventory berhasil ditambahkan!');
-    }
-
-    public function edit(Medicine $medicine)
-    {
-        $layout = getLayoutName();
-        return view('admin.medicines.edit', compact('medicine', 'layout'));
-    }
-
-    public function update(Request $request, Medicine $medicine)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'unit' => 'required|string',
-            'expired_date' => 'nullable|date'
-        ]);
-
-        $medicine->update($validated);
-
-        $prefix = getRoutePrefix();
-        return redirect()->route($prefix . '.medicines.index')
-            ->with('success', 'Inventory berhasil diupdate!');
-    }
 
     public function show(Medicine $medicine)
     {
@@ -84,7 +32,8 @@ class MedicineController extends Controller
             ->latest()
             ->get();
         
-        return view('admin.medicines.show', compact('medicine', 'penerimaanDetails', 'penjualanDetails'));
+        $layout = getLayoutName();
+        return view('admin.medicines.show', compact('medicine', 'penerimaanDetails', 'penjualanDetails', 'layout'));
     }
 
     public function destroy(Medicine $medicine)
@@ -114,5 +63,58 @@ class MedicineController extends Controller
             ->get(['id', 'name', 'code', 'price', 'stock', 'unit']);
 
         return response()->json($medicines);
+    }
+
+    public function updatePrice(Request $request, Medicine $medicine)
+    {
+        $validated = $request->validate([
+            'purchase_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'margin_percent' => 'nullable|numeric|min:0'
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // Update harga jual di medicine jika ada
+            if (isset($validated['selling_price'])) {
+                $medicine->update(['price' => $validated['selling_price']]);
+            }
+
+            // Update harga beli, harga jual, dan margin di penerimaan barang detail terakhir
+            $latestPenerimaanDetail = $medicine->penerimaanBarangDetails()->latest()->first();
+            
+            if ($latestPenerimaanDetail) {
+                $updateData = [];
+                
+                if (isset($validated['purchase_price'])) {
+                    $updateData['price'] = $validated['purchase_price'];
+                }
+                
+                if (isset($validated['selling_price'])) {
+                    $updateData['selling_price'] = $validated['selling_price'];
+                }
+                
+                if (isset($validated['margin_percent'])) {
+                    $updateData['margin_percent'] = $validated['margin_percent'];
+                }
+                
+                if (!empty($updateData)) {
+                    $latestPenerimaanDetail->update($updateData);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
