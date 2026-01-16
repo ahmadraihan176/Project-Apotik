@@ -32,6 +32,7 @@ Route::middleware(['auth'])->prefix('karyawan')->name('karyawan.')->group(functi
 
     // Menu yang sama dengan admin (kecuali Master Karyawan dan Presensi)
     Route::resource('medicines', MedicineController::class)->except(['create', 'store', 'edit', 'update']);
+    Route::post('/medicines/import-excel', [MedicineController::class, 'importExcel'])->name('medicines.import-excel');
     Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
     Route::post('/cashier', [CashierController::class, 'store'])->name('cashier.store');
     Route::get('/cashier/receipt/{id}', [CashierController::class, 'receipt'])->name('cashier.receipt');
@@ -65,6 +66,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('medicines', MedicineController::class)->except(['create', 'store', 'edit', 'update']);
     Route::get('/medicines/autocomplete', [MedicineController::class, 'autocomplete'])->name('medicines.autocomplete');
     Route::post('/medicines/{medicine}/update-price', [MedicineController::class, 'updatePrice'])->name('medicines.update-price');
+    Route::post('/medicines/import-excel', [MedicineController::class, 'importExcel'])->name('medicines.import-excel');
 
     Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
     Route::post('/cashier', [CashierController::class, 'store'])->name('cashier.store');
