@@ -12,6 +12,8 @@ class Medicine extends Model
         'code',
         'description',
         'price',
+        'purchase_price',
+        'margin_percent',
         'stock',
         'unit',
         'expired_date'
@@ -19,7 +21,9 @@ class Medicine extends Model
 
     protected $casts = [
         'expired_date' => 'date',
-        'price' => 'decimal:2'
+        'price' => 'decimal:2',
+        'purchase_price' => 'decimal:2',
+        'margin_percent' => 'decimal:2',
     ];
 
     public function transactionDetails()

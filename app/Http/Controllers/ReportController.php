@@ -14,6 +14,31 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    /**
+     * Helper function untuk menghitung pendapatan bulanan
+     * Memastikan konsistensi antara laporan bulanan dan laporan laba rugi
+     */
+    private function calculateMonthlyRevenue($year, $month)
+    {
+        return Transaction::whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->sum('total_amount');
+    }
+
+    /**
+     * Helper function untuk menghitung pendapatan harian
+     * Memastikan konsistensi antara laporan bulanan dan laporan laba rugi
+     */
+    private function calculateDailyRevenue($year, $month)
+    {
+        return Transaction::whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->selectRaw('DATE(created_at) as tanggal, SUM(total_amount) as total_pendapatan, COUNT(*) as jumlah_transaksi')
+            ->groupBy('tanggal')
+            ->orderBy('tanggal', 'asc')
+            ->get();
+    }
+
     public function monthlyReport(Request $request)
     {
         // Ambil bulan dan tahun dari request, default bulan dan tahun sekarang
@@ -28,18 +53,11 @@ class ReportController extends Controller
             $year = now()->year;
         }
 
-        // Hitung pendapatan harian dalam satu bulan
-        $pendapatanHarian = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->selectRaw('DATE(created_at) as tanggal, SUM(total_amount) as total_pendapatan, COUNT(*) as jumlah_transaksi')
-            ->groupBy('tanggal')
-            ->orderBy('tanggal', 'asc')
-            ->get();
+        // Hitung pendapatan harian dalam satu bulan (gunakan helper function untuk konsistensi)
+        $pendapatanHarian = $this->calculateDailyRevenue($year, $month);
 
-        // Hitung total pendapatan bulanan
-        $totalPendapatanBulanan = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->sum('total_amount');
+        // Hitung total pendapatan bulanan (gunakan helper function untuk konsistensi)
+        $totalPendapatanBulanan = $this->calculateMonthlyRevenue($year, $month);
 
         // Hitung total transaksi bulanan
         $totalTransaksiBulanan = Transaction::whereYear('created_at', $year)
@@ -116,18 +134,11 @@ class ReportController extends Controller
             $year = now()->year;
         }
 
-        // Hitung pendapatan harian dalam satu bulan
-        $pendapatanHarian = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->selectRaw('DATE(created_at) as tanggal, SUM(total_amount) as total_pendapatan, COUNT(*) as jumlah_transaksi')
-            ->groupBy('tanggal')
-            ->orderBy('tanggal', 'asc')
-            ->get();
+        // Hitung pendapatan harian dalam satu bulan (gunakan helper function untuk konsistensi)
+        $pendapatanHarian = $this->calculateDailyRevenue($year, $month);
 
-        // Hitung total pendapatan bulanan
-        $totalPendapatanBulanan = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->sum('total_amount');
+        // Hitung total pendapatan bulanan (gunakan helper function untuk konsistensi)
+        $totalPendapatanBulanan = $this->calculateMonthlyRevenue($year, $month);
 
         // Hitung total transaksi bulanan
         $totalTransaksiBulanan = Transaction::whereYear('created_at', $year)
@@ -174,16 +185,50 @@ class ReportController extends Controller
         }
 
         // Hitung total pembelian per bulan dari penerimaan farmasi
-        $totalPembelianBulanan = PenerimaanBarang::whereYear('receipt_date', $year)
-            ->whereMonth('receipt_date', $month)
+        // Hanya ambil pembelian yang sudah terbayar:
+        // - Pembelian cash (langsung terbayar, jenis_pembayaran = 'cash')
+        // - Pembelian tempo yang sudah_bayar (sudah dicentang di Jatuh Tempo, status_pembayaran = 'sudah_bayar')
+        // Jika ada no_faktur, dianggap sebagai pembelian (untuk data scan faktur)
+        $totalPembelianBulanan = PenerimaanBarang::whereRaw("YEAR(receipt_date) = ?", [$year])
+            ->whereRaw("MONTH(receipt_date) = ?", [$month])
+            // Filter: Hanya pembelian (jenis_penerimaan = 'Pembelian' ATAU ada no_faktur)
+            // DAN sudah terbayar (cash ATAU tempo yang sudah_bayar)
+            ->whereRaw("(
+                jenis_penerimaan = 'Pembelian' 
+                OR no_faktur IS NOT NULL
+            )")
+            ->whereRaw("(
+                jenis_pembayaran = 'cash' 
+                OR (jenis_pembayaran = 'tempo' AND status_pembayaran = 'sudah_bayar')
+            )")
             ->sum('grand_total');
 
         // Hitung total quantity pembelian per obat dalam satu bulan
+        // Hanya ambil pembelian yang sudah terbayar:
+        // - Pembelian cash (langsung terbayar, jenis_pembayaran = 'cash')
+        // - Pembelian tempo yang sudah_bayar (sudah dicentang di Jatuh Tempo, status_pembayaran = 'sudah_bayar')
+        // Jika ada no_faktur, dianggap sebagai pembelian (untuk data scan faktur)
+        
+        // Gunakan Eloquent untuk memastikan query bekerja dengan benar
+        $penerimaanBarangIds = PenerimaanBarang::whereRaw("YEAR(receipt_date) = ?", [$year])
+            ->whereRaw("MONTH(receipt_date) = ?", [$month])
+            ->where(function($query) {
+                $query->where('jenis_penerimaan', 'Pembelian')
+                      ->orWhereNotNull('no_faktur');
+            })
+            ->where(function($query) {
+                $query->where('jenis_pembayaran', 'cash')
+                      ->orWhere(function($q) {
+                          $q->where('jenis_pembayaran', 'tempo')
+                            ->where('status_pembayaran', 'sudah_bayar');
+                      });
+            })
+            ->pluck('id');
+        
         $rekapanPembelianObat = DB::table('penerimaan_barang_details')
             ->join('penerimaan_barang', 'penerimaan_barang_details.penerimaan_barang_id', '=', 'penerimaan_barang.id')
             ->join('medicines', 'penerimaan_barang_details.medicine_id', '=', 'medicines.id')
-            ->whereYear('penerimaan_barang.receipt_date', $year)
-            ->whereMonth('penerimaan_barang.receipt_date', $month)
+            ->whereIn('penerimaan_barang.id', $penerimaanBarangIds)
             ->select(
                 'medicines.id',
                 'medicines.name',
@@ -242,18 +287,11 @@ class ReportController extends Controller
             $year = now()->year;
         }
 
-        // Hitung pendapatan harian dalam satu bulan
-        $pendapatanHarian = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->selectRaw('DATE(created_at) as tanggal, SUM(total_amount) as total_pendapatan, COUNT(*) as jumlah_transaksi')
-            ->groupBy('tanggal')
-            ->orderBy('tanggal', 'asc')
-            ->get();
+        // Hitung pendapatan harian dalam satu bulan (gunakan helper function untuk konsistensi)
+        $pendapatanHarian = $this->calculateDailyRevenue($year, $month);
 
-        // Hitung total pendapatan bulanan
-        $totalPendapatanBulanan = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->sum('total_amount');
+        // Hitung total pendapatan bulanan (gunakan helper function untuk konsistensi)
+        $totalPendapatanBulanan = $this->calculateMonthlyRevenue($year, $month);
 
         // Hitung total transaksi bulanan
         $totalTransaksiBulanan = Transaction::whereYear('created_at', $year)
@@ -312,8 +350,9 @@ class ReportController extends Controller
                     $hppItem = $avgHargaBeliPerUnitJual * $quantitySold;
                     $hppHari += $hppItem;
                 } else {
-                    // Jika tidak ada data pembelian, gunakan harga jual sebagai fallback (tidak ideal)
-                    // Atau bisa diabaikan jika memang belum ada pembelian
+                    // Jika tidak ada data pembelian (obat diupload dari Excel tanpa history penerimaan)
+                    // Anggap HPP = 0, sehingga laba = harga jual
+                    // HPP tetap 0, tidak perlu ditambahkan ke $hppHari
                 }
             }
 
@@ -385,18 +424,11 @@ class ReportController extends Controller
             $year = now()->year;
         }
 
-        // Hitung pendapatan harian dalam satu bulan
-        $pendapatanHarian = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->selectRaw('DATE(created_at) as tanggal, SUM(total_amount) as total_pendapatan, COUNT(*) as jumlah_transaksi')
-            ->groupBy('tanggal')
-            ->orderBy('tanggal', 'asc')
-            ->get();
+        // Hitung pendapatan harian dalam satu bulan (gunakan helper function untuk konsistensi)
+        $pendapatanHarian = $this->calculateDailyRevenue($year, $month);
 
-        // Hitung total pendapatan bulanan
-        $totalPendapatanBulanan = Transaction::whereYear('created_at', $year)
-            ->whereMonth('created_at', $month)
-            ->sum('total_amount');
+        // Hitung total pendapatan bulanan (gunakan helper function untuk konsistensi)
+        $totalPendapatanBulanan = $this->calculateMonthlyRevenue($year, $month);
 
         // Hitung total transaksi bulanan
         $totalTransaksiBulanan = Transaction::whereYear('created_at', $year)
@@ -451,6 +483,10 @@ class ReportController extends Controller
                     // HPP untuk quantity yang dijual (jangan bulatkan per item, biarkan presisi penuh)
                     $hppItem = $avgHargaBeliPerUnitJual * $quantitySold;
                     $hppHari += $hppItem;
+                } else {
+                    // Jika tidak ada data pembelian (obat diupload dari Excel tanpa history penerimaan)
+                    // Anggap HPP = 0, sehingga laba = harga jual
+                    // HPP tetap 0, tidak perlu ditambahkan ke $hppHari
                 }
             }
 

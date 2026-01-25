@@ -7,63 +7,39 @@
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="mb-6 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-gray-800">Daftar Obat</h3>
-        <div class="flex gap-2">
-            <input type="text" id="searchMedicine" placeholder="Cari obat berdasarkan nama..." 
-                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 w-64">
-            <button type="button" onclick="resetSearch()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 hidden" id="resetBtn">
-                <i class="fas fa-times mr-2"></i>Reset
-            </button>
-        </div>
-    </div>
-
-    @if(session('success'))
-        <div class="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    <!-- Form Upload Excel -->
-    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 class="text-lg font-semibold text-gray-800 mb-3">
-            <i class="fas fa-file-excel text-green-600 mr-2"></i>Upload Data Obat dari Excel
-        </h4>
-        <p class="text-sm text-gray-600 mb-3">
-            Format Excel: <strong>Kolom B (Nama Obat)</strong> - Hanya membaca nama obat dari kolom kedua
-        </p>
-        <p class="text-xs text-gray-500 mb-3">
-            File Excel dapat memiliki maksimal 4 sheet. Semua sheet akan diproses. Hanya kolom Nama Obat yang akan diimpor.
-        </p>
         @php
             $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
         @endphp
-        <form action="{{ route($routePrefix . '.medicines.import-excel') }}" method="POST" enctype="multipart/form-data" class="flex items-end gap-3">
+        <form action="{{ route($routePrefix . '.medicines.import-excel') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-2">
             @csrf
-            <div class="flex-1">
-                <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" required
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                <p class="mt-1 text-xs text-gray-500">Format file: .xlsx atau .xls (maks. 10MB)</p>
-            </div>
-            <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                <i class="fas fa-upload mr-2"></i>Upload Excel
+            <label for="excel_file" class="cursor-pointer">
+                <div class="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-lg hover:border-blue-400 transition-colors">
+                    <i class="fas fa-file-excel text-green-600 mr-2"></i>
+                    <span id="file-name" class="text-sm text-gray-600">Excel</span>
+                    <input type="file" name="excel_file" id="excel_file" accept=".xlsx,.xls" required class="hidden">
+                </div>
+            </label>
+            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium text-sm">
+                <i class="fas fa-upload mr-1"></i>Upload
             </button>
         </form>
-        <div class="mt-3 text-xs text-gray-500">
-            <p><strong>Catatan:</strong></p>
-            <ul class="list-disc list-inside mt-1">
-                <li>Baris pertama akan diabaikan (header)</li>
-                <li>Hanya membaca kolom <strong>Nama Obat</strong> (kolom B/kolom kedua)</li>
-                <li>Nama Obat wajib diisi, baris tanpa nama akan diabaikan</li>
-                <li>Jika nama obat sudah ada, akan diabaikan (tidak duplikat)</li>
-                <li>Semua sheet dalam file Excel akan diproses (maksimal 4 sheet)</li>
-                <li>Kode obat akan dibuat otomatis dari nama obat</li>
-                <li>Data default: Harga = 0, Stok = 0, Unit = box (dapat diupdate manual setelah import)</li>
-            </ul>
+    </div>
+
+    <!-- Search Box -->
+    <div class="mb-6 p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="flex-1">
+                <label for="searchMedicine" class="block mb-2 text-sm font-medium text-gray-700">
+                    <i class="fas fa-search text-blue-600 mr-2"></i>Cari Obat
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="searchMedicine" placeholder="Cari obat berdasarkan nama..." 
+                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white">
+                    <button type="button" onclick="resetSearch()" class="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 hidden" id="resetBtn">
+                        <i class="fas fa-times mr-2"></i>Reset
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -130,6 +106,32 @@
 
 @push('scripts')
 <script>
+// File input handler
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('excel_file');
+    const fileName = document.getElementById('file-name');
+    
+    if (fileInput && fileName) {
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const fileNameText = e.target.files[0].name;
+                // Tampilkan nama file yang lebih pendek jika terlalu panjang
+                if (fileNameText.length > 20) {
+                    fileName.textContent = fileNameText.substring(0, 17) + '...';
+                } else {
+                    fileName.textContent = fileNameText;
+                }
+                fileName.classList.remove('text-gray-600');
+                fileName.classList.add('text-green-600', 'font-medium');
+            } else {
+                fileName.textContent = 'Excel';
+                fileName.classList.remove('text-green-600', 'font-medium');
+                fileName.classList.add('text-gray-600');
+            }
+        });
+    }
+});
+
 // Search functionality - real-time filtering like cashier
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('searchMedicine');

@@ -14,6 +14,7 @@ use App\Http\Controllers\JatuhTempoController;
 use App\Http\Controllers\KaryawanController;
 use App\Http\Controllers\KaryawanDashboardController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ScanFakturController;
 
 // Home
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -33,6 +34,8 @@ Route::middleware(['auth'])->prefix('karyawan')->name('karyawan.')->group(functi
     // Menu yang sama dengan admin (kecuali Master Karyawan dan Presensi)
     Route::resource('medicines', MedicineController::class)->except(['create', 'store', 'edit', 'update']);
     Route::post('/medicines/import-excel', [MedicineController::class, 'importExcel'])->name('medicines.import-excel');
+    Route::post('/medicines/{medicine}/update-info', [MedicineController::class, 'updateInfo'])->name('medicines.update-info');
+    Route::post('/medicines/{medicine}/update-stock', [MedicineController::class, 'updateStock'])->name('medicines.update-stock');
     Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
     Route::post('/cashier', [CashierController::class, 'store'])->name('cashier.store');
     Route::get('/cashier/receipt/{id}', [CashierController::class, 'receipt'])->name('cashier.receipt');
@@ -42,6 +45,7 @@ Route::middleware(['auth'])->prefix('karyawan')->name('karyawan.')->group(functi
     Route::get('/penerimaan-farmasi', [PenerimaanFarmasiController::class, 'create'])->name('penerimaan-farmasi.create');
     Route::get('/penerimaan-farmasi/get-no-urut', [PenerimaanFarmasiController::class, 'getNoUrut'])->name('penerimaan-farmasi.get-no-urut');
     Route::post('/penerimaan-farmasi', [PenerimaanFarmasiController::class, 'store'])->name('penerimaan-farmasi.store');
+    Route::post('/penerimaan-farmasi/scan-faktur', [ScanFakturController::class, 'scan'])->name('penerimaan-farmasi.scan-faktur');
     
     // Jatuh Tempo
     Route::get('/jatuh-tempo', [JatuhTempoController::class, 'index'])->name('jatuh-tempo.index');
@@ -66,6 +70,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('medicines', MedicineController::class)->except(['create', 'store', 'edit', 'update']);
     Route::get('/medicines/autocomplete', [MedicineController::class, 'autocomplete'])->name('medicines.autocomplete');
     Route::post('/medicines/{medicine}/update-price', [MedicineController::class, 'updatePrice'])->name('medicines.update-price');
+    Route::post('/medicines/{medicine}/update-info', [MedicineController::class, 'updateInfo'])->name('medicines.update-info');
+    Route::post('/medicines/{medicine}/update-stock', [MedicineController::class, 'updateStock'])->name('medicines.update-stock');
     Route::post('/medicines/import-excel', [MedicineController::class, 'importExcel'])->name('medicines.import-excel');
 
     Route::get('/cashier', [CashierController::class, 'index'])->name('cashier.index');
@@ -77,6 +83,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/penerimaan-farmasi', [PenerimaanFarmasiController::class, 'create'])->name('penerimaan-farmasi.create');
     Route::get('/penerimaan-farmasi/get-no-urut', [PenerimaanFarmasiController::class, 'getNoUrut'])->name('penerimaan-farmasi.get-no-urut');
     Route::post('/penerimaan-farmasi', [PenerimaanFarmasiController::class, 'store'])->name('penerimaan-farmasi.store');
+    Route::post('/penerimaan-farmasi/scan-faktur', [ScanFakturController::class, 'scan'])->name('penerimaan-farmasi.scan-faktur');
     
     // Jatuh Tempo
     Route::get('/jatuh-tempo', [JatuhTempoController::class, 'index'])->name('jatuh-tempo.index');

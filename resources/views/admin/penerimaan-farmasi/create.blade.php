@@ -8,6 +8,51 @@
     @php
         $routePrefix = request()->routeIs('karyawan.*') ? 'karyawan' : 'admin';
     @endphp
+
+    <!-- Section Scan Faktur -->
+    <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-camera text-blue-600 mr-2"></i>Scan Faktur Otomatis
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+            Upload foto/scan faktur atau file PDF dari supplier untuk mengisi form secara otomatis menggunakan AI.
+        </p>
+        <div class="flex items-end gap-4">
+            <div class="flex-1">
+                <div class="flex items-center gap-2">
+                    <input type="file" id="faktur_image" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf,.pdf"
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer">
+                    <button type="button" onclick="clearFileInput()" id="clearFileBtn" 
+                        class="hidden px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors" title="Batalkan file">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, WEBP, PDF (maks. 10MB)</p>
+            </div>
+            <button type="button" onclick="scanFaktur()" id="scanButton"
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                <i class="fas fa-magic mr-2"></i>Scan Faktur
+            </button>
+        </div>
+        <!-- Preview Image -->
+        <div id="imagePreview" class="mt-4 hidden">
+            <p class="text-sm text-gray-600 mb-2">Preview:</p>
+            <img id="previewImg" src="" alt="Preview" class="max-h-48 rounded-lg border border-gray-300">
+        </div>
+        <!-- Loading Indicator -->
+        <div id="scanLoading" class="mt-4 hidden">
+            <div class="flex items-center text-blue-600">
+                <svg class="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Sedang memproses faktur dengan AI...</span>
+            </div>
+        </div>
+        <!-- Scan Result Message -->
+        <div id="scanResult" class="mt-4 hidden"></div>
+    </div>
+
     <form action="{{ route($routePrefix . '.penerimaan-farmasi.store') }}" method="POST" id="receiptForm" novalidate>
         @csrf
         
@@ -314,6 +359,224 @@
     let itemCount = 0;
     let items = [];
     let generatedCodes = {}; // Simpan kode yang sudah di-generate untuk nama obat tertentu
+
+    // Preview file saat dipilih
+    document.getElementById('faktur_image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const previewContainer = document.getElementById('imagePreview');
+        const clearBtn = document.getElementById('clearFileBtn');
+        
+        if (file) {
+            // Tampilkan tombol X
+            clearBtn.classList.remove('hidden');
+            
+            // Cek apakah file adalah PDF
+            if (file.type === 'application/pdf') {
+                // Untuk PDF, tampilkan icon/text saja
+                previewContainer.innerHTML = `
+                    <p class="text-sm text-gray-600 mb-2">File dipilih:</p>
+                    <div class="flex items-center p-3 bg-gray-100 rounded-lg border border-gray-300">
+                        <i class="fas fa-file-pdf text-red-500 text-3xl mr-3"></i>
+                        <div>
+                            <p class="font-medium text-gray-800">${file.name}</p>
+                            <p class="text-xs text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                    </div>
+                `;
+                previewContainer.classList.remove('hidden');
+            } else {
+                // Untuk gambar, tampilkan preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewContainer.innerHTML = `
+                        <p class="text-sm text-gray-600 mb-2">Preview:</p>
+                        <img id="previewImg" src="${e.target.result}" alt="Preview" class="max-h-48 rounded-lg border border-gray-300">
+                    `;
+                    previewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        } else {
+            previewContainer.classList.add('hidden');
+            clearBtn.classList.add('hidden');
+        }
+    });
+
+    // Fungsi untuk membatalkan/clear file yang dipilih
+    function clearFileInput() {
+        const fileInput = document.getElementById('faktur_image');
+        const previewContainer = document.getElementById('imagePreview');
+        const clearBtn = document.getElementById('clearFileBtn');
+        const scanResult = document.getElementById('scanResult');
+        
+        // Reset file input
+        fileInput.value = '';
+        
+        // Sembunyikan preview dan tombol X
+        previewContainer.classList.add('hidden');
+        previewContainer.innerHTML = '';
+        clearBtn.classList.add('hidden');
+        
+        // Sembunyikan hasil scan sebelumnya
+        scanResult.classList.add('hidden');
+        scanResult.innerHTML = '';
+    }
+
+    // Fungsi scan faktur dengan Gemini AI
+    function scanFaktur() {
+        const fileInput = document.getElementById('faktur_image');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            alert('Silakan pilih gambar faktur terlebih dahulu!');
+            return;
+        }
+
+        // Validasi ukuran file (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Ukuran file terlalu besar! Maksimal 10MB.');
+            return;
+        }
+
+        // Validasi tipe file
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Format file tidak didukung! Gunakan JPG, PNG, WEBP, atau PDF.');
+            return;
+        }
+
+        // Show loading, hide result
+        const loadingEl = document.getElementById('scanLoading');
+        const resultEl = document.getElementById('scanResult');
+        const scanButton = document.getElementById('scanButton');
+        
+        loadingEl.classList.remove('hidden');
+        resultEl.classList.add('hidden');
+        scanButton.disabled = true;
+        scanButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Memproses...';
+
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('faktur_image', file);
+        formData.append('_token', '{{ csrf_token() }}');
+
+        // Send request
+        fetch('{{ route($routePrefix . ".penerimaan-farmasi.scan-faktur") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+            loadingEl.classList.add('hidden');
+            scanButton.disabled = false;
+            scanButton.innerHTML = '<i class="fas fa-magic mr-2"></i>Scan Faktur';
+
+            if (result.success) {
+                // Fill form with scan result
+                fillFormWithScanResult(result.data);
+                
+                resultEl.innerHTML = `
+                    <div class="p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <strong>Berhasil!</strong> Data faktur berhasil di-scan. Silakan periksa dan lengkapi data yang kurang.
+                    </div>
+                `;
+                resultEl.classList.remove('hidden');
+                
+                // Scroll ke form
+                document.getElementById('receiptForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                resultEl.innerHTML = `
+                    <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                        <strong>Gagal!</strong> ${result.message || 'Tidak dapat membaca faktur. Silakan coba lagi atau input manual.'}
+                    </div>
+                `;
+                resultEl.classList.remove('hidden');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            loadingEl.classList.add('hidden');
+            scanButton.disabled = false;
+            scanButton.innerHTML = '<i class="fas fa-magic mr-2"></i>Scan Faktur';
+            
+            resultEl.innerHTML = `
+                <div class="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <strong>Error!</strong> Terjadi kesalahan saat memproses. Silakan coba lagi.
+                </div>
+            `;
+            resultEl.classList.remove('hidden');
+        });
+    }
+
+    // Fill form dengan hasil scan
+    function fillFormWithScanResult(data) {
+        // Fill informasi umum
+        if (data.supplier_name) {
+            document.getElementById('supplier_name').value = data.supplier_name;
+        }
+        if (data.no_faktur) {
+            document.querySelector('input[name="no_faktur"]').value = data.no_faktur;
+        }
+        if (data.receipt_date) {
+            document.getElementById('receipt_date_input').value = data.receipt_date;
+            updateNoUrut();
+        }
+        if (data.jenis_pembayaran) {
+            document.getElementById('jenis_pembayaran').value = data.jenis_pembayaran;
+            toggleJatuhTempo();
+        }
+        if (data.jatuh_tempo) {
+            document.querySelector('input[name="jatuh_tempo"]').value = data.jatuh_tempo;
+        }
+
+        // Jenis penerimaan default ke Pembelian
+        document.querySelector('select[name="jenis_penerimaan"]').value = 'Pembelian';
+
+        // Clear existing items
+        items = [];
+        itemCount = 0;
+        renderItemsTable();
+
+        // Add items dari scan
+        if (data.items && data.items.length > 0) {
+            data.items.forEach(item => {
+                itemCount++;
+                
+                // Generate product code
+                const productCode = 'MED' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                
+                // Hitung discount amount
+                const itemSubtotal = item.price * item.quantity;
+                const discountAmount = itemSubtotal * (item.discount_percent || 0) / 100;
+
+                // Margin dan harga jual dikosongkan, user harus input manual
+                const newItem = {
+                    id: itemCount,
+                    product_code: productCode,
+                    medicine_name: item.medicine_name || '',
+                    unit_jual: item.unit_jual || 'strip',
+                    unit_kemasan: item.unit_kemasan || 'box',
+                    isi_per_box: item.isi_per_box || null,
+                    quantity: item.quantity || 1,
+                    price: item.price || 0,
+                    description: '',
+                    discount_percent: item.discount_percent || 0,
+                    discount_amount: discountAmount,
+                    margin_percent: 0, // Kosong, user input manual
+                    selling_price: 0, // Kosong, akan terhitung setelah margin diisi
+                    no_batch: item.no_batch || '',
+                    expired_date: item.expired_date || null
+                };
+
+                items.push(newItem);
+            });
+            
+            renderItemsTable();
+        }
+    }
 
     // Generate kode produk otomatis saat input nama obat
     function generateProductCode() {
