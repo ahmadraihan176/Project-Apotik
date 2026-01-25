@@ -65,6 +65,11 @@ class DashboardController extends Controller
                 $labaItem = ($hargaJualPerUnit * $quantitySold) - $hppItem;
                 // Jangan bulatkan per item, biarkan presisi penuh sampai akhir
                 $todayProfit += $labaItem;
+            } else {
+                // Jika tidak ada data pembelian (obat diupload dari Excel tanpa history penerimaan)
+                // Anggap HPP = 0, sehingga laba = harga jual
+                $labaItem = $hargaJualPerUnit * $quantitySold;
+                $todayProfit += $labaItem;
             }
         }
         
@@ -117,6 +122,11 @@ class DashboardController extends Controller
                 $hppItem = $avgHargaBeliPerUnitJual * $quantitySold;
                 $labaItem = ($hargaJualPerUnit * $quantitySold) - $hppItem;
                 // Jangan bulatkan per item, biarkan presisi penuh sampai akhir
+                $monthProfit += $labaItem;
+            } else {
+                // Jika tidak ada data pembelian (obat diupload dari Excel tanpa history penerimaan)
+                // Anggap HPP = 0, sehingga laba = harga jual
+                $labaItem = $hargaJualPerUnit * $quantitySold;
                 $monthProfit += $labaItem;
             }
         }

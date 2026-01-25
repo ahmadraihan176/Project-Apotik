@@ -120,6 +120,106 @@ class MedicineController extends Controller
         }
     }
 
+    /**
+     * Update gabungan untuk detail obat (unit + harga + margin + stok).
+     * Dibuat supaya UI cukup 1 tombol simpan.
+     */
+    public function updateInfo(Request $request, Medicine $medicine)
+    {
+        $validated = $request->validate([
+            'unit' => 'required|string|max:50',
+            'stock' => 'nullable|integer|min:0',
+            'purchase_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'margin_percent' => 'nullable|numeric|min:0',
+        ]);
+
+        $hasPenerimaan = $medicine->penerimaanBarangDetails()->exists();
+
+        DB::beginTransaction();
+        try {
+            // Unit jual (satuan penjualan)
+            $medicine->unit = trim($validated['unit']);
+
+            // Stok hanya boleh diubah jika tidak punya history penerimaan (obat import Excel)
+            if (array_key_exists('stock', $validated)) {
+                if ($hasPenerimaan) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Obat ini memiliki history penerimaan. Stok tidak bisa diubah dari sini (gunakan Penerimaan Farmasi).'
+                    ], 400);
+                }
+                $medicine->stock = (int) $validated['stock'];
+            }
+
+            // Harga beli & margin disimpan di medicines (agar obat tanpa history penerimaan tetap punya HPP/margin)
+            if (array_key_exists('purchase_price', $validated) && $validated['purchase_price'] !== null) {
+                $medicine->purchase_price = $validated['purchase_price'];
+            }
+            if (array_key_exists('margin_percent', $validated) && $validated['margin_percent'] !== null) {
+                $medicine->margin_percent = $validated['margin_percent'];
+            }
+
+            // Selling price:
+            // - Jika diinput langsung, pakai itu
+            // - Jika kosong tapi ada purchase_price + margin_percent, hitung otomatis
+            $sellingPrice = null;
+            if (array_key_exists('selling_price', $validated) && $validated['selling_price'] !== null) {
+                $sellingPrice = $validated['selling_price'];
+            } else {
+                $purchasePriceForCalc = array_key_exists('purchase_price', $validated) && $validated['purchase_price'] !== null
+                    ? (float) $validated['purchase_price']
+                    : (float) ($medicine->purchase_price ?? 0);
+                $marginForCalc = array_key_exists('margin_percent', $validated) && $validated['margin_percent'] !== null
+                    ? (float) $validated['margin_percent']
+                    : (float) ($medicine->margin_percent ?? 0);
+
+                if ($purchasePriceForCalc > 0) {
+                    $sellingPrice = $purchasePriceForCalc * (1 + ($marginForCalc / 100));
+                }
+            }
+
+            if ($sellingPrice !== null) {
+                $medicine->price = round($sellingPrice, 2);
+            }
+
+            $medicine->save();
+
+            // Sinkronkan ke penerimaan detail terakhir (kalau ada) supaya data tetap konsisten di history
+            $latestPenerimaanDetail = $medicine->penerimaanBarangDetails()->latest()->first();
+            if ($latestPenerimaanDetail) {
+                $updateData = [
+                    'unit_jual' => $medicine->unit,
+                ];
+
+                if (array_key_exists('purchase_price', $validated) && $validated['purchase_price'] !== null) {
+                    $updateData['price'] = $validated['purchase_price'];
+                }
+                if ($sellingPrice !== null) {
+                    $updateData['selling_price'] = round($sellingPrice, 2);
+                }
+                if (array_key_exists('margin_percent', $validated) && $validated['margin_percent'] !== null) {
+                    $updateData['margin_percent'] = $validated['margin_percent'];
+                }
+
+                $latestPenerimaanDetail->update($updateData);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data obat berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function importExcel(Request $request)
     {
         $request->validate([
@@ -298,6 +398,44 @@ class MedicineController extends Controller
             $prefix = getRoutePrefix();
             return redirect()->route($prefix . '.medicines.index')
                 ->with('error', 'Gagal mengimpor file Excel: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update stok untuk obat yang diimport via Excel (tidak punya history penerimaan)
+     */
+    public function updateStock(Request $request, Medicine $medicine)
+    {
+        // Cek apakah obat ini diimport via Excel (tidak punya history penerimaan)
+        $hasPenerimaan = $medicine->penerimaanBarangDetails()->exists();
+        
+        if ($hasPenerimaan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Obat ini memiliki history penerimaan. Gunakan menu Penerimaan Farmasi untuk menambah stok.'
+            ], 400);
+        }
+
+        $validated = $request->validate([
+            'stock' => 'required|numeric|min:0',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $medicine->update(['stock' => $validated['stock']]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stok berhasil diperbarui!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
         }
     }
 

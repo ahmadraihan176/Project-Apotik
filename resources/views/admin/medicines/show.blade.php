@@ -36,7 +36,7 @@
                 </p>
             </div>
             <div>
-                <label class="text-sm text-gray-500">Unit</label>
+                <label class="text-sm text-gray-500">Satuan Penjualan</label>
                 <p class="text-gray-800">{{ $medicine->unit }}</p>
             </div>
             @if($medicine->expired_date)
@@ -46,29 +46,82 @@
             </div>
             @endif
         </div>
-        
-        <!-- Harga Beli, Harga Jual, dan Margin -->
+
+        <!-- Edit Data Obat (1 tombol simpan) -->
         <div class="mt-6 border-t pt-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Harga</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Edit Data Obat</h3>
             @php
-                // Ambil data penerimaan terakhir untuk mendapatkan harga beli dan margin
                 $latestPenerimaan = $penerimaanDetails->first();
-                $hargaBeli = $latestPenerimaan ? $latestPenerimaan->price : 0;
-                $hargaJual = $medicine->price;
-                $marginPercent = $latestPenerimaan ? $latestPenerimaan->margin_percent : 0;
+                // Jika ada history penerimaan, ambil dari penerimaan terakhir
+                // Jika tidak ada, ambil dari kolom medicines (untuk obat hasil import Excel)
+                $hargaBeli = $latestPenerimaan ? ($latestPenerimaan->price ?? 0) : ($medicine->purchase_price ?? 0);
+                $hargaJual = $medicine->price ?? 0;
+                $marginPercent = $latestPenerimaan ? ($latestPenerimaan->margin_percent ?? 0) : ($medicine->margin_percent ?? 0);
+                $hasPenerimaan = $penerimaanDetails->count() > 0;
             @endphp
-            <div class="grid grid-cols-3 gap-4">
+
+            @if(!$hasPenerimaan)
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-yellow-600 mr-2"></i>
+                    <span class="text-sm text-yellow-700">Obat ini belum memiliki history penerimaan. Anda bisa mengubah stok, harga beli, dan margin dari sini.</span>
+                </div>
+            </div>
+            @else
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    <span class="text-sm text-blue-700">Obat ini memiliki history penerimaan. Stok tidak bisa diubah dari sini (gunakan menu Penerimaan Farmasi).</span>
+                </div>
+            </div>
+            @endif
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-500 mb-2">Satuan Penjualan (Unit)</label>
+                    <input type="text" id="unit" value="{{ $medicine->unit }}"
+                        list="unitOptions"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        placeholder="contoh: box / strip / tablet / botol">
+                    <datalist id="unitOptions">
+                        <option value="box"></option>
+                        <option value="strip"></option>
+                        <option value="tablet"></option>
+                        <option value="kapsul"></option>
+                        <option value="botol"></option>
+                        <option value="sachet"></option>
+                        <option value="ampul"></option>
+                        <option value="vial"></option>
+                        <option value="pcs"></option>
+                        <option value="ml"></option>
+                    </datalist>
+                    <p class="text-xs text-gray-400 mt-1">Unit ini dipakai untuk tampilan stok & penjualan.</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm text-gray-500 mb-2">Jumlah Stok</label>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="stock" inputmode="numeric" value="{{ $medicine->stock }}"
+                            {{ $hasPenerimaan ? 'disabled' : '' }}
+                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-gray-100 disabled:text-gray-500"
+                            placeholder="Masukkan jumlah stok (contoh: 1000)"
+                            oninput="formatStockInput(this)">
+                        <span class="text-sm text-gray-500">{{ $medicine->unit }}</span>
+                    </div>
+                    @if($hasPenerimaan)
+                        <p class="text-xs text-gray-400 mt-1">Stok diubah lewat Penerimaan Farmasi.</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <div>
                     <label class="block text-sm text-gray-500 mb-2">Harga Beli</label>
                     <div class="flex items-center gap-2">
                         <input type="number" id="purchase_price" step="1" min="0" value="{{ round($hargaBeli) }}"
                             class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                             placeholder="Harga beli">
-                        <span class="text-sm text-gray-500">/ {{ $medicine->unit }}</span>
-                        <button type="button" onclick="updateMedicinePrice('purchase')" 
-                            class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                            <i class="fas fa-save"></i>
-                        </button>
+                        <span class="text-sm text-gray-500">/ <span id="unit_suffix_a">{{ $medicine->unit }}</span></span>
                     </div>
                 </div>
                 <div>
@@ -77,12 +130,9 @@
                         <input type="number" id="selling_price" step="1" min="0" value="{{ round($hargaJual) }}"
                             class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                             placeholder="Harga jual">
-                        <span class="text-sm text-gray-500">/ {{ $medicine->unit }}</span>
-                        <button type="button" onclick="updateMedicinePrice('selling')" 
-                            class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
-                            <i class="fas fa-save"></i>
-                        </button>
+                        <span class="text-sm text-gray-500">/ <span id="unit_suffix_b">{{ $medicine->unit }}</span></span>
                     </div>
+                    <p class="text-xs text-gray-400 mt-1">Jika kosong, akan dihitung dari margin.</p>
                 </div>
                 <div>
                     <label class="block text-sm text-gray-500 mb-2">Margin (%)</label>
@@ -93,12 +143,15 @@
                             onchange="calculateSellingPriceFromMargin()"
                             onkeyup="calculateSellingPriceFromMargin()">
                         <span class="text-sm text-gray-500">%</span>
-                        <button type="button" onclick="updateMedicinePrice('margin')" 
-                            class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
-                            <i class="fas fa-save"></i>
-                        </button>
                     </div>
                 </div>
+            </div>
+
+            <div class="mt-5 flex justify-end">
+                <button type="button" onclick="saveMedicineInfo()"
+                    class="px-6 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>Simpan Perubahan
+                </button>
             </div>
         </div>
     </div>
@@ -290,6 +343,14 @@
 
 @push('scripts')
 <script>
+// Format input stok: biarkan user ketik angka langsung tanpa ribet
+function formatStockInput(input) {
+    // Hapus semua karakter selain angka
+    let value = input.value.replace(/[^\d]/g, '');
+    // Update value tanpa format (biar simple)
+    input.value = value;
+}
+
 function calculateSellingPriceFromMargin() {
     const purchasePriceInput = document.getElementById('purchase_price');
     const marginPercentInput = document.getElementById('margin_percent');
@@ -309,71 +370,73 @@ function calculateSellingPriceFromMargin() {
     }
 }
 
-function updateMedicinePrice(type) {
+// Update suffix unit di UI jika user mengubah satuan
+document.addEventListener('DOMContentLoaded', function () {
+    const unitInput = document.getElementById('unit');
+    if (!unitInput) return;
+    unitInput.addEventListener('input', function () {
+        const val = unitInput.value || '';
+        const a = document.getElementById('unit_suffix_a');
+        const b = document.getElementById('unit_suffix_b');
+        if (a) a.textContent = val;
+        if (b) b.textContent = val;
+    });
+});
+
+function saveMedicineInfo() {
     const medicineId = {{ $medicine->id }};
-    let data = {};
-    
-    if (type === 'purchase') {
-        const purchasePrice = parseFloat(document.getElementById('purchase_price').value) || 0;
-        if (purchasePrice <= 0) {
-            alert('Harga beli harus lebih dari 0!');
-            return;
-        }
-        data = { purchase_price: purchasePrice };
-    } else if (type === 'selling') {
-        const sellingPrice = parseFloat(document.getElementById('selling_price').value) || 0;
-        if (sellingPrice <= 0) {
-            alert('Harga jual harus lebih dari 0!');
-            return;
-        }
-        data = { selling_price: sellingPrice };
-    } else if (type === 'margin') {
-        const marginPercent = parseFloat(document.getElementById('margin_percent').value) || 0;
-        if (marginPercent < 0) {
-            alert('Margin tidak boleh negatif!');
-            return;
-        }
-        
-        // Hitung ulang harga jual berdasarkan margin baru
-        const purchasePriceInput = document.getElementById('purchase_price');
-        const sellingPriceInput = document.getElementById('selling_price');
-        
-        if (purchasePriceInput && sellingPriceInput) {
-            const purchasePrice = parseFloat(purchasePriceInput.value) || 0;
-            
-            if (purchasePrice > 0) {
-                // Harga beli sudah termasuk PPN, jadi langsung hitung dengan margin
-                // Jika margin 0%, harga jual = harga beli
-                // Jika margin > 0%, harga jual = harga beli * (1 + margin/100)
-                const sellingPrice = purchasePrice * (1 + marginPercent / 100);
-                sellingPriceInput.value = Math.round(sellingPrice);
-                
-                // Kirim margin dan harga jual yang baru
-                data = { 
-                    margin_percent: marginPercent,
-                    selling_price: Math.round(sellingPrice)
-                };
-            } else {
-                data = { margin_percent: marginPercent };
-            }
-        } else {
-            data = { margin_percent: marginPercent };
-        }
+    const routePrefix = '{{ request()->routeIs("karyawan.*") ? "karyawan" : "admin" }}';
+
+    const unit = (document.getElementById('unit')?.value || '').trim();
+    const stockEl = document.getElementById('stock');
+    const purchasePrice = parseFloat(document.getElementById('purchase_price')?.value || '0') || 0;
+    const sellingPrice = parseFloat(document.getElementById('selling_price')?.value || '0') || 0;
+    const marginPercent = parseFloat(document.getElementById('margin_percent')?.value || '0') || 0;
+
+    if (!unit) {
+        alert('Satuan penjualan (unit) wajib diisi!');
+        return;
     }
-    
-    // Kirim request ke server
-    fetch(`/admin/medicines/${medicineId}/update-price`, {
+    if (purchasePrice < 0 || sellingPrice < 0 || marginPercent < 0) {
+        alert('Nilai tidak boleh negatif!');
+        return;
+    }
+
+    const payload = {
+        unit: unit,
+        purchase_price: purchasePrice,
+        margin_percent: marginPercent,
+    };
+
+    // Jika user mengisi harga jual, kirim; jika tidak, biarkan server hitung dari margin
+    if (sellingPrice > 0) {
+        payload.selling_price = sellingPrice;
+    }
+
+    // Jika stok enabled (hanya untuk obat tanpa penerimaan), ikut kirim
+    if (stockEl && !stockEl.disabled) {
+        // Hapus semua karakter non-digit, lalu parse
+        const stockRaw = (stockEl.value || '0').replace(/[^\d]/g, '');
+        const stockVal = parseInt(stockRaw, 10);
+        if (isNaN(stockVal) || stockVal < 0) {
+            alert('Stok tidak valid!');
+            return;
+        }
+        payload.stock = stockVal;
+    }
+
+    fetch(`/${routePrefix}/medicines/${medicineId}/update-info`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
     })
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            alert('Data berhasil diperbarui!');
+            alert(result.message || 'Data berhasil diperbarui!');
             location.reload();
         } else {
             alert('Terjadi kesalahan: ' + (result.message || 'Unknown error'));
@@ -381,7 +444,7 @@ function updateMedicinePrice(type) {
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Terjadi kesalahan saat memperbarui data!');
+        alert('Terjadi kesalahan saat menyimpan!');
     });
 }
 </script>

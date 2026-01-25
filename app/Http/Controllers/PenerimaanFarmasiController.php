@@ -93,16 +93,30 @@ class PenerimaanFarmasiController extends Controller
                 $noUrut = PenerimaanBarang::generateNoUrut($validated['receipt_date']);
             }
             
+            // Set status pembayaran berdasarkan jenis pembayaran
+            // Cash = sudah terbayar langsung, Tempo = belum terbayar (akan diubah saat dicentang di Jatuh Tempo)
+            $statusPembayaran = $validated['jenis_pembayaran'] === 'cash' ? 'sudah_bayar' : 'belum_bayar';
+            $tanggalBayar = $validated['jenis_pembayaran'] === 'cash' ? now() : null;
+            
+            // Jika ada no_faktur, WAJIB jenis_penerimaan = 'Pembelian'
+            // (karena faktur selalu untuk pembelian, tidak peduli user mengubah apa di form)
+            $jenisPenerimaan = $validated['jenis_penerimaan'] ?? null;
+            if (!empty($validated['no_faktur'])) {
+                $jenisPenerimaan = 'Pembelian'; // Force 'Pembelian' jika ada no_faktur
+            }
+            
             // Buat penerimaan barang
             $penerimaanBarang = PenerimaanBarang::create([
                 'receipt_code' => PenerimaanBarang::generateCode(),
                 'receipt_date' => $validated['receipt_date'],
                 'supplier_name' => $validated['supplier_name'] ?? null,
-                'jenis_penerimaan' => $validated['jenis_penerimaan'] ?? null,
+                'jenis_penerimaan' => $jenisPenerimaan,
                 'no_sp' => $validated['no_sp'] ?? null,
                 'no_faktur' => $validated['no_faktur'] ?? null,
                 'jenis_pembayaran' => $validated['jenis_pembayaran'],
                 'jatuh_tempo' => $validated['jatuh_tempo'] ?? null,
+                'status_pembayaran' => $statusPembayaran,
+                'tanggal_bayar' => $tanggalBayar,
                 'diterima_semua' => $validated['diterima_semua'] ?? null,
                 'no_urut' => $noUrut,
                 'total' => $subtotal,
