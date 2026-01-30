@@ -57,6 +57,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Hadir</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Terlambat</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Hari</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Persentase</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -74,6 +75,10 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
                             <span class="font-semibold">{{ $r['total_hadir'] }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-red-600">
+                            <span class="font-semibold">{{ $r['total_terlambat'] ?? 0 }}</span>
+                            <span class="text-xs text-gray-500">kali</span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
                             {{ $r['total_hari'] }}
@@ -104,7 +109,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
                             Tidak ada data karyawan untuk rekapan bulan ini.
                         </td>
                     </tr>

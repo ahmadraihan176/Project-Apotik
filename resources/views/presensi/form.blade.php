@@ -40,15 +40,14 @@
         {{-- SCANNER AREA --}}
         <div class="mb-6">
             <div class="relative">
-                <div id="scanner-container" class="w-full bg-black rounded-lg overflow-hidden" style="min-height: 400px;">
-                    <video id="video" class="w-full h-full object-cover"></video>
+                <div id="scanner-container" class="w-full bg-black rounded-lg overflow-hidden relative min-h-[300px]">
                     <canvas id="canvas" class="hidden"></canvas>
-                    <div id="scanner-overlay" class="absolute inset-0 flex items-center justify-center">
-                        <div class="border-4 border-white rounded-lg" style="width: 250px; height: 250px;">
-                            <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white"></div>
-                            <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white"></div>
-                            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white"></div>
-                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white"></div>
+                    <div id="scanner-overlay" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div class="border-4 border-white rounded-lg relative" style="width: 250px; height: 250px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);">
+                            <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-sky-500 -mt-1 -ml-1"></div>
+                            <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-sky-500 -mt-1 -mr-1"></div>
+                            <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-sky-500 -mb-1 -ml-1"></div>
+                            <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-sky-500 -mb-1 -mr-1"></div>
                         </div>
                     </div>
                 </div>
@@ -99,6 +98,18 @@
     </div>
 </div>
 
+<style>
+    /* Styling untuk video element yang digenerate oleh Quagga */
+    #scanner-container video {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    #scanner-container canvas {
+        display: none; /* Hide canvas by default */
+    }
+</style>
+
 @push('scripts')
 <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 <script>
@@ -118,10 +129,7 @@
                 type: "LiveStream",
                 target: document.querySelector('#scanner-container'),
                 constraints: {
-                    width: { min: 640, ideal: 1280, max: 1920 },
-                    height: { min: 480, ideal: 720, max: 1080 },
-                    facingMode: "environment", // Use back camera on mobile
-                    aspectRatio: { ideal: 1.7777777778 }
+                    facingMode: "environment" // Gunakan kamera belakang secara default
                 }
             },
             locator: {

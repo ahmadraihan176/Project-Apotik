@@ -33,110 +33,14 @@ class KaryawanDashboardController extends Controller
         $totalStock = \App\Models\Medicine::sum('stock');
         $lowStock = \App\Models\Medicine::where('stock', '<=', 10)->count();
         
-        $todayTransactions = \App\Models\Transaction::whereDate('created_at', today())->count();
-        $todayRevenue = \App\Models\Transaction::whereDate('created_at', today())->sum('total_amount');
-        
+        // Statistik tidak ditampilkan untuk karyawan untuk performa dan privasi
+        $todayTransactions = 0;
+        $todayRevenue = 0;
         $todayProfit = 0;
-        $todayTransactionDetails = \App\Models\TransactionDetail::whereHas('transaction', function($query) {
-            $query->whereDate('created_at', today());
-        })->with('medicine')->get();
-
-        foreach ($todayTransactionDetails as $detail) {
-            $medicineId = $detail->medicine_id;
-            $quantitySold = $detail->quantity;
-            $hargaJualPerUnit = $detail->price;
-            $transactionDate = \Carbon\Carbon::parse($detail->transaction->created_at);
-
-            $pembelianData = \Illuminate\Support\Facades\DB::table('penerimaan_barang_details')
-                ->join('penerimaan_barang', 'penerimaan_barang_details.penerimaan_barang_id', '=', 'penerimaan_barang.id')
-                ->where('penerimaan_barang_details.medicine_id', $medicineId)
-                ->whereDate('penerimaan_barang.receipt_date', '<=', $transactionDate)
-                ->selectRaw('
-                    SUM(penerimaan_barang_details.price * 
-                        CASE 
-                            WHEN penerimaan_barang_details.unit_kemasan = "box" AND penerimaan_barang_details.isi_per_box > 0 
-                            THEN penerimaan_barang_details.quantity * penerimaan_barang_details.isi_per_box
-                            ELSE penerimaan_barang_details.quantity 
-                        END
-                    ) as total_subtotal,
-                    SUM(CASE 
-                        WHEN penerimaan_barang_details.unit_kemasan = "box" AND penerimaan_barang_details.isi_per_box > 0 
-                        THEN penerimaan_barang_details.quantity * penerimaan_barang_details.isi_per_box
-                        ELSE penerimaan_barang_details.quantity 
-                    END) as total_qty_unit_jual
-                ')
-                ->first();
-
-            if ($pembelianData && $pembelianData->total_qty_unit_jual > 0) {
-                $avgHargaBeliPerUnitJual = $pembelianData->total_subtotal / $pembelianData->total_qty_unit_jual;
-                $hppItem = $avgHargaBeliPerUnitJual * $quantitySold;
-                $labaItem = ($hargaJualPerUnit * $quantitySold) - $hppItem;
-                // Jangan bulatkan per item, biarkan presisi penuh sampai akhir
-                $todayProfit += $labaItem;
-            } else {
-                // Jika tidak ada data pembelian (obat diupload dari Excel tanpa history penerimaan)
-                // Anggap HPP = 0, sehingga laba = harga jual
-                $labaItem = $hargaJualPerUnit * $quantitySold;
-                $todayProfit += $labaItem;
-            }
-        }
         
-        // Bulatkan total laba hanya di akhir setelah semua item dijumlahkan
-        $todayProfit = round($todayProfit, 2);
-        
-        $monthTransactions = \App\Models\Transaction::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)->count();
-        $monthRevenue = \App\Models\Transaction::whereYear('created_at', now()->year)
-            ->whereMonth('created_at', now()->month)->sum('total_amount');
-        
+        $monthTransactions = 0;
+        $monthRevenue = 0;
         $monthProfit = 0;
-        $monthTransactionDetails = \App\Models\TransactionDetail::whereHas('transaction', function($query) {
-            $query->whereYear('created_at', now()->year)
-                  ->whereMonth('created_at', now()->month);
-        })->with('medicine')->get();
-
-        foreach ($monthTransactionDetails as $detail) {
-            $medicineId = $detail->medicine_id;
-            $quantitySold = $detail->quantity;
-            $hargaJualPerUnit = $detail->price;
-            $transactionDate = \Carbon\Carbon::parse($detail->transaction->created_at);
-
-            $pembelianData = \Illuminate\Support\Facades\DB::table('penerimaan_barang_details')
-                ->join('penerimaan_barang', 'penerimaan_barang_details.penerimaan_barang_id', '=', 'penerimaan_barang.id')
-                ->where('penerimaan_barang_details.medicine_id', $medicineId)
-                ->whereDate('penerimaan_barang.receipt_date', '<=', $transactionDate)
-                ->selectRaw('
-                    SUM(penerimaan_barang_details.price * 
-                        CASE 
-                            WHEN penerimaan_barang_details.unit_kemasan = "box" AND penerimaan_barang_details.isi_per_box > 0 
-                            THEN penerimaan_barang_details.quantity * penerimaan_barang_details.isi_per_box
-                            ELSE penerimaan_barang_details.quantity 
-                        END
-                    ) as total_subtotal,
-                    SUM(CASE 
-                        WHEN penerimaan_barang_details.unit_kemasan = "box" AND penerimaan_barang_details.isi_per_box > 0 
-                        THEN penerimaan_barang_details.quantity * penerimaan_barang_details.isi_per_box
-                        ELSE penerimaan_barang_details.quantity 
-                    END) as total_qty_unit_jual
-                ')
-                ->first();
-
-            if ($pembelianData && $pembelianData->total_qty_unit_jual > 0) {
-                $avgHargaBeliPerUnitJual = $pembelianData->total_subtotal / $pembelianData->total_qty_unit_jual;
-                $hppItem = $avgHargaBeliPerUnitJual * $quantitySold;
-                $labaItem = ($hargaJualPerUnit * $quantitySold) - $hppItem;
-                // Jangan bulatkan per item, biarkan presisi penuh sampai akhir
-                $monthProfit += $labaItem;
-            } else {
-                // Jika tidak ada data pembelian (obat diupload dari Excel tanpa history penerimaan)
-                // Anggap HPP = 0, sehingga laba = harga jual
-                $labaItem = $hargaJualPerUnit * $quantitySold;
-                $monthProfit += $labaItem;
-            }
-        }
-        
-        // Bulatkan total laba hanya di akhir setelah semua item dijumlahkan
-        $monthProfit = round($monthProfit, 2);
         
         $totalTransactions = \App\Models\Transaction::count();
         $totalRevenue = \App\Models\Transaction::sum('total_amount');
