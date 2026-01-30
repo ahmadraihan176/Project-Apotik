@@ -17,9 +17,9 @@
  <!-- Hero Section -->
 <section class="gradient-bg text-white py-20">
     <div class="container mx-auto px-6 text-center">
-        <h2 class="text-5xl font-bold mb-4">Selamat Datang di Langse Farma</h2>
-        <p class="text-xl mb-8 opacity-90">Apotek Terpercaya untuk Kesehatan Keluarga Anda</p>
-        <div class="flex justify-center space-x-4">
+        <h2 class="text-3xl md:text-5xl font-bold mb-4">Selamat Datang di Langse Farma</h2>
+        <p class="text-lg md:text-xl mb-8 opacity-90">Apotek Terpercaya untuk Kesehatan Keluarga Anda</p>
+        <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4">
             <div class="bg-white text-sky-600 px-6 py-3 rounded-lg shadow-lg">
                 <i class="fas fa-pills text-2xl mb-2"></i>
                 <p class="font-semibold">Obat Lengkap</p>

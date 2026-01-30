@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dashboard Karyawan') - Langse Farma</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .gradient-bg {
@@ -12,13 +13,22 @@
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ sidebarOpen: false }">
     <!-- Sidebar -->
-    <div class="flex h-screen">
-        <aside class="w-64 gradient-bg text-white">
-            <div class="p-6">
-                <h2 class="text-2xl font-bold">Langse Farma</h2>
-                <p class="text-sm opacity-80">Karyawan Panel</p>
+    <div class="flex h-screen bg-gray-100">
+        <!-- Mobile Sidebar Overlay -->
+        <div x-show="sidebarOpen" @click="sidebarOpen = false" x-transition:enter="transition-opacity ease-linear duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-linear duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 z-20 bg-black bg-opacity-50 md:hidden"></div>
+
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-30 w-64 gradient-bg text-white transition-transform duration-300 transform md:translate-x-0 md:static md:inset-0">
+            <div class="flex items-center justify-between p-6">
+                <div>
+                    <h2 class="text-2xl font-bold">Langse Farma</h2>
+                    <p class="text-sm opacity-80">Karyawan Panel</p>
+                </div>
+                <!-- Close button on mobile -->
+                <button @click="sidebarOpen = false" class="md:hidden text-white focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
             <nav class="mt-6">
                 <a href="{{ route('karyawan.dashboard') }}" class="flex items-center px-6 py-3 hover:bg-white hover:bg-opacity-10 {{ request()->routeIs('karyawan.dashboard') ? 'bg-white bg-opacity-20' : '' }}">
@@ -46,11 +56,16 @@
         </aside>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
+        <div class="flex-1 flex flex-col overflow-hidden w-full">
             <!-- Header -->
             <header class="bg-white shadow-sm">
-                <div class="flex items-center justify-between px-8 py-4">
-                    <h1 class="text-2xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
+                <div class="flex items-center justify-between px-4 py-4 md:px-8">
+                    <div class="flex items-center">
+                        <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 focus:outline-none md:hidden mr-4">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <h1 class="text-xl md:text-2xl font-semibold text-gray-800">@yield('header', 'Dashboard')</h1>
+                    </div>
                     <div class="flex items-center space-x-4">
                         @php
                             // Tampilkan nama karyawan yang login, atau "Langse Farma" jika tidak ada
