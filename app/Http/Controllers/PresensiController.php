@@ -97,9 +97,14 @@ class PresensiController extends Controller
         $rekapan = [];
         foreach ($karyawan as $k) {
             $presensiKaryawan = $presensiBulanan->get($k->id, collect());
+            
+            // Hitung total terlambat (frekuensi)
+            $totalTerlambat = $presensiKaryawan->where('status_kehadiran', 'terlambat')->count();
+            
             $rekapan[] = [
                 'karyawan' => $k,
                 'total_hadir' => $presensiKaryawan->count(),
+                'total_terlambat' => $totalTerlambat,
                 'total_hari' => Carbon::create($tahun, $bulan, 1)->daysInMonth,
                 'persentase' => $presensiKaryawan->count() > 0 
                     ? round(($presensiKaryawan->count() / Carbon::create($tahun, $bulan, 1)->daysInMonth) * 100, 2)
@@ -218,6 +223,40 @@ class PresensiController extends Controller
 
         $now = Carbon::now();
 
+        // Cek Jam Kerja & Hitung Keterlambatan
+        $hariIni = $now->dayOfWeek; // 0 (Minggu) - 6 (Sabtu)
+        $jamSekarang = (int) $now->format('H');
+        $menitSekarang = (int) $now->format('i');
+        
+        $statusKehadiran = 'tepat_waktu';
+        $keterlambatan = 0; // dalam menit
+
+        // Batas waktu presensi
+        $batasMasuk = null; // Carbon object untuk batas waktu
+
+        if ($hariIni === 0) { // Minggu
+            // Minggu: 14:00 - 15:00
+            $batasMasuk = Carbon::createFromTime(15, 0, 0); // Batas akhir jam 15:00
+            
+            // Logika baru: Tetap bisa presensi kapan saja, tapi dihitung terlambat jika lewat jam 15:00
+            if ($now->greaterThan($batasMasuk)) {
+                $statusKehadiran = 'terlambat';
+                $keterlambatan = $now->diffInMinutes($batasMasuk);
+            }
+            
+            // Jika sebelum jam 14:00 (terlalu awal) - Opsional: bolehkan atau tolak?
+            // Asumsi: Boleh presensi lebih awal, dianggap tepat waktu.
+            
+        } else { // Senin - Sabtu
+            // Senin - Sabtu: 07:00 - 09:00
+            $batasMasuk = Carbon::createFromTime(9, 0, 0); // Batas akhir jam 09:00
+            
+            if ($now->greaterThan($batasMasuk)) {
+                $statusKehadiran = 'terlambat';
+                $keterlambatan = $now->diffInMinutes($batasMasuk);
+            }
+        }
+
         // Cek apakah sudah presensi hari ini
         $presensiHariIni = Presensi::where('user_id', $user->id)
             ->whereDate('tanggal', $now->toDateString())
@@ -243,9 +282,14 @@ class PresensiController extends Controller
             'status' => 1,
             'tanggal' => $now,
             'jam_masuk' => $now->format('H:i:s'),
+            'status_kehadiran' => $statusKehadiran,
+            'keterlambatan' => $keterlambatan
         ]);
 
         $successMessage = 'Presensi berhasil! ' . $user->name . ' - Jam: ' . $presensi->jam_masuk;
+        if ($statusKehadiran === 'terlambat') {
+            $successMessage .= ' (Terlambat ' . $keterlambatan . ' menit)';
+        }
         
         if ($request->expectsJson() || $request->wantsJson()) {
             return response()->json([
@@ -255,7 +299,9 @@ class PresensiController extends Controller
                     'nama' => $user->name,
                     'nik' => $user->nik,
                     'jam_masuk' => $presensi->jam_masuk,
-                    'tanggal' => $presensi->tanggal->format('d/m/Y')
+                    'tanggal' => $presensi->tanggal->format('d/m/Y'),
+                    'status_kehadiran' => $statusKehadiran,
+                    'keterlambatan' => $keterlambatan
                 ]
             ], 200);
         }

@@ -67,6 +67,7 @@
 </div>
 
 <!-- Statistik Hari Ini -->
+@if(auth()->user()->role === 'admin')
 <div class="mb-6">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">
         <i class="fas fa-calendar-day mr-2"></i>Statistik Hari Ini
@@ -163,15 +164,16 @@
         </div>
     </div>
 </div>
+@endif
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Low Stock Alert -->
-    <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="bg-white rounded-lg shadow-md p-6 h-fit">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">
             <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>Stok Menipis
         </h3>
         @if($lowStockMedicines->count() > 0)
-            <div class="space-y-3">
+            <div class="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                 @foreach($lowStockMedicines as $medicine)
                     <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                         <div>

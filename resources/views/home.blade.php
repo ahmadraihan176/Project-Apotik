@@ -11,9 +11,6 @@
                 <i class="fas fa-heartbeat text-3xl text-sky-500"></i>
                 <h1 class="text-2xl font-bold text-gray-800">Langse Farma</h1>
             </div>
-            <a href="{{ route('login') }}" class="px-6 py-2 gradient-bg text-white rounded-lg hover:opacity-90 transition">
-                <i class="fas fa-sign-in-alt mr-2"></i>Login Admin
-            </a>
         </div>
     </div>
 </nav>
@@ -127,6 +124,11 @@
 <footer class="bg-gray-800 text-white py-6">
     <div class="container mx-auto px-6 text-center">
         <p>&copy; 2024 Langse Farma. All rights reserved.</p>
+        <div class="mt-4">
+            <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-500 text-xs transition-colors duration-200 no-underline" aria-label="Staff Login">
+                <i class="fas fa-lock mr-1"></i>Staff Only
+            </a>
+        </div>
     </div>
 </footer>
 @endsection
